@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package ec.jwsacruncher.core;
 
 import com.google.common.base.Throwables;
 import ec.jwsacruncher.xml.XmlGenericWorkspace;

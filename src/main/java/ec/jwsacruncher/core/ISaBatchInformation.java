@@ -16,7 +16,7 @@
 */
 
 
-package ec.jwsacruncher;
+package ec.jwsacruncher.core;
 
 import java.util.Iterator;
 
