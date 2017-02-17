@@ -13,8 +13,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
-*/
-
+ */
 package ec.jwsacruncher;
 
 import ec.tss.sa.EstimationPolicyType;
@@ -48,50 +47,39 @@ public class WsaConfig {
     @XmlElement(name = "path")
     public String[] Paths;
     @XmlAttribute(name = "bundle")
-    public Integer BundleSize=10000;
+    public Integer BundleSize = 10000;
     @XmlAttribute(name = "csvlayout")
     public String layout = "list";
     @XmlAttribute(name = "csvseparator")
-    public String csvsep=String.valueOf(BasicConfiguration.getCsvSeparator());
+    public String csvsep = String.valueOf(BasicConfiguration.getCsvSeparator());
     @XmlAttribute(name = "ndecs")
-    public Integer ndecs=6;
+    public Integer ndecs = 6;
 
     public WsaConfig() {
-//        Output = SystemProperties.JAVA_IO_TMPDIR.getValue();
-//        String data = ec.tstoolkit.utilities.Paths.concatenate(SystemProperties.USER_HOME.getValue(), "Data");
-//        Paths = new String[]{ec.tstoolkit.utilities.Paths.concatenate(data, "Xml"),
-//            ec.tstoolkit.utilities.Paths.concatenate(data, "Excel")};
     }
 
     public EstimationPolicyType getPolicy() {
         if (policy == null) {
             return EstimationPolicyType.None;
-        }
-        else if (policy.equalsIgnoreCase("f")
+        } else if (policy.equalsIgnoreCase("f")
                 || policy.equalsIgnoreCase("fixed")) {
             return EstimationPolicyType.FixedParameters;
-        }
-        else if (policy.equalsIgnoreCase("p")
+        } else if (policy.equalsIgnoreCase("p")
                 || policy.equalsIgnoreCase("parameters")) {
             return EstimationPolicyType.FreeParameters;
-        }
-        else if (policy.equalsIgnoreCase("c")
+        } else if (policy.equalsIgnoreCase("c")
                 || policy.equalsIgnoreCase("complete")) {
             return EstimationPolicyType.Complete;
-        }
-        else if (policy.equalsIgnoreCase("o")
+        } else if (policy.equalsIgnoreCase("o")
                 || policy.equalsIgnoreCase("outliers")) {
             return EstimationPolicyType.Outliers;
-        }
-        else if (policy.equalsIgnoreCase("l")
+        } else if (policy.equalsIgnoreCase("l")
                 || policy.equalsIgnoreCase("lastoutliers")) {
             return EstimationPolicyType.LastOutliers;
-        }
-        else if (policy.equalsIgnoreCase("stochastic")
+        } else if (policy.equalsIgnoreCase("stochastic")
                 || policy.equalsIgnoreCase("s")) {
             return EstimationPolicyType.Outliers_StochasticComponent;
-        }
-        else {
+        } else {
             return EstimationPolicyType.None;
         }
     }
@@ -99,16 +87,13 @@ public class WsaConfig {
     public CsvLayout getLayout() {
         if (layout == null) {
             return CsvLayout.List;
-        }
-        else if (layout.equalsIgnoreCase("h")
+        } else if (layout.equalsIgnoreCase("h")
                 || layout.equalsIgnoreCase("htable")) {
             return CsvLayout.HTable;
-        }
-        else if (layout.equalsIgnoreCase("v")
+        } else if (layout.equalsIgnoreCase("v")
                 || layout.equalsIgnoreCase("vtable")) {
             return CsvLayout.VTable;
-        }
-        else {
+        } else {
             return CsvLayout.List;
         }
     }

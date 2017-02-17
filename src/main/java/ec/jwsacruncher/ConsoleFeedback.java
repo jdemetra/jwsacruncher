@@ -22,7 +22,7 @@ import ec.jwsacruncher.core.ISaBatchFeedback;
  *
  * @author Kristof Bayens
  */
-public class ConsoleFeedback implements ISaBatchFeedback {
+final class ConsoleFeedback implements ISaBatchFeedback {
 
     @Override
     public synchronized void showAction(String action) {
