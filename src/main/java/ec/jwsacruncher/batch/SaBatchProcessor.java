@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.core;
+package ec.jwsacruncher.batch;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import ec.tss.sa.SaItem;

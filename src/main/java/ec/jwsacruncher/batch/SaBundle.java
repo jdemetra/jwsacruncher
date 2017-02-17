@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.core;
+package ec.jwsacruncher.batch;
 
 import ec.satoolkit.ISaSpecification;
 import ec.tss.sa.ISaOutputFactory;

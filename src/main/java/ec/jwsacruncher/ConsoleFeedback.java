@@ -16,7 +16,7 @@
  */
 package ec.jwsacruncher;
 
-import ec.jwsacruncher.core.ISaBatchFeedback;
+import ec.jwsacruncher.batch.ISaBatchFeedback;
 
 /**
  *

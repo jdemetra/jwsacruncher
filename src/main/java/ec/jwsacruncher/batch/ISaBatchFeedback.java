@@ -16,7 +16,7 @@
 */
 
 
-package ec.jwsacruncher.core;
+package ec.jwsacruncher.batch;
 
 /**
  *

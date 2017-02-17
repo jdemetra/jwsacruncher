@@ -18,8 +18,8 @@ package ec.jwsacruncher;
 
 import com.google.common.base.Stopwatch;
 import ec.jwsacruncher.core.FileRepository;
-import ec.jwsacruncher.core.SaBatchProcessor;
-import ec.jwsacruncher.core.SaBatchInformation;
+import ec.jwsacruncher.batch.SaBatchProcessor;
+import ec.jwsacruncher.batch.SaBatchInformation;
 import ec.tss.ITsProvider;
 import ec.tss.TsFactory;
 import ec.tss.sa.ISaDiagnosticsFactory;
