@@ -34,7 +34,6 @@ import ec.tss.sa.processors.TramoSeatsProcessor;
 import ec.tss.sa.processors.X13Processor;
 import ec.tss.tsproviders.IFileLoader;
 import ec.tss.tsproviders.TsProviders;
-import ec.tss.tsproviders.common.random.RandomProvider;
 import ec.tstoolkit.utilities.Paths;
 import java.io.BufferedReader;
 import java.io.File;
@@ -88,7 +87,6 @@ public class App {
 
         // providers
         TsFactory.instance.addAll(ServiceLoader.load(ITsProvider.class));
-        TsFactory.instance.add(new RandomProvider());
         for (IFileLoader o : TsProviders.all().filter(IFileLoader.class)) {
             o.setPaths(paths);
         }
