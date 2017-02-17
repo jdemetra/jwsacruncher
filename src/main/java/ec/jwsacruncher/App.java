@@ -22,6 +22,7 @@ import ec.jwsacruncher.batch.SaBatchProcessor;
 import ec.jwsacruncher.batch.SaBatchInformation;
 import ec.tss.ITsProvider;
 import ec.tss.TsFactory;
+import ec.tss.sa.EstimationPolicyType;
 import ec.tss.sa.ISaDiagnosticsFactory;
 import ec.tss.sa.ISaProcessingFactory;
 import ec.tss.sa.SaManager;
@@ -67,12 +68,12 @@ public final class App {
         }
 
         loadResources();
-        run(config.getKey(), config.getValue());
+        process(config.getKey(), config.getValue());
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 
-    private static void run(File file, WsaConfig config) {
+    private static void process(File file, WsaConfig config) {
         Map<String, SaProcessing> sa = FileRepository.loadProcessing(file);
         if (sa == null || sa.isEmpty()) {
             return;
@@ -81,7 +82,24 @@ public final class App {
         applyFilePaths(getFilePaths(config));
         applyOutputConfig(config, file);
 
-        sa.entrySet().forEach(o -> process(config, file, o.getKey(), o.getValue()));
+        sa.entrySet().forEach(o -> process(file, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize));
+    }
+
+    private static void process(File file, String name, SaProcessing processing, EstimationPolicyType policy, int bundleSize) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        System.out.println("Refreshing data");
+        processing.refresh(policy, false);
+        SaBatchInformation info = new SaBatchInformation(processing.size() > bundleSize ? bundleSize : 0);
+        info.setName(name);
+        info.setItems(processing);
+        SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
+        processor.process();
+
+        System.out.println("Saving new processing...");
+        FileRepository.write(file, name, processing);
+
+        System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 
     private static void loadResources() {
@@ -94,12 +112,6 @@ public final class App {
         TsProviders.all().filter(IFileLoader.class).forEach(o -> o.setPaths(paths));
     }
 
-    private static File[] getFilePaths(WsaConfig config) {
-        return config.Paths != null
-                ? Stream.of(config.Paths).map(File::new).toArray(File[]::new)
-                : new File[0];
-    }
-
     private static void applyOutputConfig(WsaConfig config, File file) {
         if (config.ndecs != null) {
             BasicConfiguration.setDecimalNumber(config.ndecs);
@@ -109,15 +121,22 @@ public final class App {
         }
 
         if (config.Output == null) {
-            config.Output = Paths.concatenate(FileRepository.getRepositoryRootFolder(file), "Output");
+            config.Output = Paths.concatenate(FileRepository.getRepositoryRootFolder(file).getAbsolutePath(), "Output");
         }
         File output = new File(config.Output);
         if (!output.exists()) {
             output.mkdirs();
         }
 
+        // TODO: apply instead of add
         SaManager.instance.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
         SaManager.instance.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
+    }
+
+    private static File[] getFilePaths(WsaConfig config) {
+        return config.Paths != null
+                ? Stream.of(config.Paths).map(File::new).toArray(File[]::new)
+                : new File[0];
     }
 
     private static CsvOutputConfiguration getCsvOutputConfiguration(WsaConfig config) {
@@ -135,22 +154,5 @@ public final class App {
             result.setItems(Arrays.asList(config.Matrix));
         }
         return result;
-    }
-
-    private static void process(WsaConfig config, File file, String name, SaProcessing processing) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        System.out.println("Refreshing data");
-        processing.refresh(config.getPolicy(), false);
-        SaBatchInformation info = new SaBatchInformation(processing.size() > config.BundleSize ? config.BundleSize : 0);
-        info.setName(name);
-        info.setItems(processing);
-        SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
-        processor.process();
-
-        System.out.println("Saving new processing...");
-        FileRepository.write(file, name, processing);
-
-        System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 }

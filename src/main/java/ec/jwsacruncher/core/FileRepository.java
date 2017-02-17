@@ -46,25 +46,17 @@ import javax.xml.bind.Unmarshaller;
  *
  * @author Jean Palate
  */
-public class FileRepository {
+public final class FileRepository {
 
     public static final String VAR = "Variables", CAL = "Calendars", SA = "SAProcessing", MULTIDOCUMENTS = "multi-documents";
-    public static final String NAME = "File", FILENAME = "fileName", VERSION = "20120925";
     public static final LinearId ID = new LinearId(GenericSaProcessingFactory.FAMILY, MULTIDOCUMENTS),
             VID = new LinearId("Utilities", "Variables");
     private static final String SEP = "@";
     static final JAXBContext XML_GENERIC_WS_CONTEXT;
     static final JAXBContext XML_WS_CONTEXT;
-    public static boolean legacy = false;
-    public static String root;
 
-    public static boolean isLegacy() {
-        return legacy;
-    }
-
-    public static File getRootFolder() {
-        return new File(root);
-    }
+    private static boolean legacy = false;
+    private static File root;
 
     static {
         try {
@@ -75,12 +67,12 @@ public class FileRepository {
         }
     }
 
-    public static boolean loadCalendars(String file, boolean legacy) {
+    public static boolean loadCalendars(File file, boolean legacy) {
         GregorianCalendarManager activeMgr = ProcessingContext.getActiveContext().getGregorianCalendars();
-        Class<? extends IXmlConverter<GregorianCalendarManager>> clazz = legacy 
+        Class<? extends IXmlConverter<GregorianCalendarManager>> clazz = legacy
                 ? ec.tss.xml.legacy.XmlCalendars.class
                 : ec.tss.xml.calendar.XmlCalendars.class;
-        GregorianCalendarManager mgr = ItemRepository.loadLegacy(file, clazz);
+        GregorianCalendarManager mgr = XmlUtil.loadLegacy(file, clazz);
         if (mgr != null) {
             for (String s : mgr.getNames()) {
                 if (!activeMgr.contains(s)) {
@@ -95,9 +87,9 @@ public class FileRepository {
         }
     }
 
-    public static boolean loadLegacyUserVariables(String vars, String file) {
+    public static boolean loadLegacyUserVariables(String vars, File file) {
         NameManager<TsVariables> activeMgr = ProcessingContext.getActiveContext().getTsVariableManagers();
-        TsVariables mgr = ItemRepository.loadLegacy(file, ec.tss.xml.legacy.XmlTsVariables.class);
+        TsVariables mgr = XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlTsVariables.class);
         if (mgr != null) {
             activeMgr.set(vars, mgr);
             activeMgr.resetDirty();
@@ -107,14 +99,14 @@ public class FileRepository {
         }
     }
 
-    private static String getCalendarFile(File ws, String name, boolean create) {
+    private static File getCalendarFile(File ws, String name, boolean create) {
         String folder = getRepositoryFolder(ws, CAL, create);
-        return Paths.changeExtension(Paths.concatenate(folder, name), "xml");
+        return new File(Paths.changeExtension(Paths.concatenate(folder, name), "xml"));
     }
 
-    private static String getVariablesFile(File ws, String name, boolean create) {
+    private static File getVariablesFile(File ws, String name, boolean create) {
         String folder = getRepositoryFolder(ws, VAR, create);
-        return Paths.changeExtension(Paths.concatenate(folder, name), "xml");
+        return new File(Paths.changeExtension(Paths.concatenate(folder, name), "xml"));
     }
 
     public static String getRepositoryFolder(File ws, String repository, boolean create) {
@@ -128,8 +120,8 @@ public class FileRepository {
         return frepo.getAbsolutePath();
     }
 
-    public static String getRepositoryRootFolder(File id) {
-        return Paths.changeExtension(id.getAbsolutePath(), null);
+    public static File getRepositoryRootFolder(File id) {
+        return new File(Paths.changeExtension(id.getAbsolutePath(), null));
     }
 
     public static Map<String, SaProcessing> loadProcessing(File file) {
@@ -163,7 +155,7 @@ public class FileRepository {
                 }
                 String pfolder = getRepositoryFolder(file, SA, false);
                 File pfile = new File(pfolder, xfile);
-                SaProcessing p = loadProcessing(Paths.changeExtension(pfile.getAbsolutePath(), "xml"));
+                SaProcessing p = loadSaProcessing(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
                 if (p != null) {
                     sa.put(xfile, p);
                 }
@@ -192,7 +184,7 @@ public class FileRepository {
             Path bfile = java.nio.file.Paths.get(pfolder, ofile);
             Files.copy(tfile, bfile);
 
-            ItemRepository.saveLegacy(tfile.toAbsolutePath().toString(), processing, XmlSaProcessing.class);
+            XmlUtil.storeLegacy(tfile.toFile(), XmlSaProcessing.class, processing);
         } catch (Exception ex) {
         }
     }
@@ -207,17 +199,17 @@ public class FileRepository {
             Path bfile = java.nio.file.Paths.get(pfolder, ofile);
             Files.copy(tfile, bfile, StandardCopyOption.REPLACE_EXISTING);
 
-            ItemRepository.saveInfo(tfile.toAbsolutePath().toString(), processing);
+            XmlUtil.storeInfo(tfile.toFile(), processing);
         } catch (Exception ex) {
         }
     }
 
-    private static SaProcessing loadProcessing(String sfile) {
-        SaProcessing p = ItemRepository.loadLegacy(sfile, XmlSaProcessing.class);
+    private static SaProcessing loadSaProcessing(File file) {
+        SaProcessing p = XmlUtil.loadLegacy(file, XmlSaProcessing.class);
         if (p != null) {
             return p;
         }
-        return ItemRepository.loadInfo(sfile, SaProcessing.class);
+        return XmlUtil.loadInfo(file, SaProcessing.class);
 
     }
 
@@ -242,7 +234,7 @@ public class FileRepository {
                     }
                     String pfolder = getRepositoryFolder(file, SA, false);
                     File pfile = new File(pfolder, xfile);
-                    SaProcessing p = loadProcessing(Paths.changeExtension(pfile.getAbsolutePath(), "xml"));
+                    SaProcessing p = loadSaProcessing(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
                     if (p != null) {
                         sa.put(xfile, p);
                     }
@@ -253,7 +245,7 @@ public class FileRepository {
                     }
                     String pfolder = getRepositoryFolder(file, VAR, false);
                     File pfile = new File(pfolder, xfile);
-                    TsVariables v = loadVariables(Paths.changeExtension(pfile.getAbsolutePath(), "xml"));
+                    TsVariables v = loadVariables(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
                     if (v != null) {
                         ProcessingContext.getActiveContext().getTsVariableManagers().set(el.name, v);
                     }
@@ -266,10 +258,10 @@ public class FileRepository {
         }
     }
 
-    private static TsVariables loadVariables(String sfile) {
-        TsVariables vars=ItemRepository.loadInfo(sfile, TsVariables.class);
-        if (vars == null){
-            vars=ItemRepository.loadLegacy(sfile, ec.tss.xml.regression.XmlTsVariables.class);
+    private static TsVariables loadVariables(File file) {
+        TsVariables vars = XmlUtil.loadInfo(file, TsVariables.class);
+        if (vars == null) {
+            vars = XmlUtil.loadLegacy(file, ec.tss.xml.regression.XmlTsVariables.class);
         }
         return vars;
     }
