@@ -34,6 +34,7 @@ import ec.tss.sa.output.CsvOutputConfiguration;
 import ec.tss.sa.output.CsvOutputFactory;
 import ec.tss.tsproviders.IFileLoader;
 import ec.tss.tsproviders.TsProviders;
+import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.utilities.Paths;
 import java.io.File;
 import java.util.*;
@@ -68,24 +69,24 @@ public final class App {
         }
 
         loadResources();
-        process(config.getKey(), config.getValue());
+        process(new FileRepository(config.getKey().toPath()), ProcessingContext.getActiveContext(), config.getValue());
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 
-    private static void process(File file, WsaConfig config) {
-        Map<String, SaProcessing> sa = FileRepository.loadProcessing(file);
+    private static void process(FileRepository repository, ProcessingContext context, WsaConfig config) {
+        Map<String, SaProcessing> sa = repository.loadAllSaProcessing(context);
         if (sa == null || sa.isEmpty()) {
             return;
         }
 
         applyFilePaths(getFilePaths(config));
-        applyOutputConfig(config, file);
+        applyOutputConfig(config, repository);
 
-        sa.entrySet().forEach(o -> process(file, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize));
+        sa.entrySet().forEach(o -> process(repository, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize));
     }
 
-    private static void process(File file, String name, SaProcessing processing, EstimationPolicyType policy, int bundleSize) {
+    private static void process(FileRepository repository, String name, SaProcessing processing, EstimationPolicyType policy, int bundleSize) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         System.out.println("Refreshing data");
@@ -97,7 +98,7 @@ public final class App {
         processor.process();
 
         System.out.println("Saving new processing...");
-        FileRepository.write(file, name, processing);
+        repository.storeSaProcessing(name, processing);
 
         System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
@@ -112,7 +113,7 @@ public final class App {
         TsProviders.all().filter(IFileLoader.class).forEach(o -> o.setPaths(paths));
     }
 
-    private static void applyOutputConfig(WsaConfig config, File file) {
+    private static void applyOutputConfig(WsaConfig config, FileRepository repository) {
         if (config.ndecs != null) {
             BasicConfiguration.setDecimalNumber(config.ndecs);
         }
@@ -121,7 +122,7 @@ public final class App {
         }
 
         if (config.Output == null) {
-            config.Output = Paths.concatenate(FileRepository.getRepositoryRootFolder(file).getAbsolutePath(), "Output");
+            config.Output = Paths.concatenate(repository.getRepositoryRootFolder().toAbsolutePath().toString(), "Output");
         }
         File output = new File(config.Output);
         if (!output.exists()) {

@@ -16,14 +16,12 @@
  */
 package ec.jwsacruncher.core;
 
-import com.google.common.base.Throwables;
 import ec.jwsacruncher.xml.XmlGenericWorkspace;
 import ec.jwsacruncher.xml.XmlWksElement;
 import ec.jwsacruncher.xml.XmlWorkspace;
 import ec.jwsacruncher.xml.XmlWorkspaceItem;
 import ec.satoolkit.GenericSaProcessingFactory;
 import ec.tss.sa.SaProcessing;
-import ec.tss.xml.IXmlConverter;
 import ec.tss.xml.sa.XmlSaProcessing;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
@@ -32,15 +30,11 @@ import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.utilities.LinearId;
 import ec.tstoolkit.utilities.NameManager;
 import ec.tstoolkit.utilities.Paths;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 
 /**
  *
@@ -48,221 +42,207 @@ import javax.xml.bind.Unmarshaller;
  */
 public final class FileRepository {
 
-    public static final String VAR = "Variables", CAL = "Calendars", SA = "SAProcessing", MULTIDOCUMENTS = "multi-documents";
-    public static final LinearId ID = new LinearId(GenericSaProcessingFactory.FAMILY, MULTIDOCUMENTS),
-            VID = new LinearId("Utilities", "Variables");
+    public enum Type {
+        VAR("Variables"), CAL("Calendars"), SA("SAProcessing"), MULTIDOCUMENTS("multi-documents");
+
+        private final String path;
+
+        private Type(String path) {
+            this.path = path;
+        }
+
+        public String getPath() {
+            return path;
+        }
+    }
+
+    private static final LinearId SA_ID = new LinearId(GenericSaProcessingFactory.FAMILY, Type.MULTIDOCUMENTS.path);
+    private static final LinearId VAR_ID = new LinearId("Utilities", "Variables");
     private static final String SEP = "@";
-    static final JAXBContext XML_GENERIC_WS_CONTEXT;
-    static final JAXBContext XML_WS_CONTEXT;
 
-    private static boolean legacy = false;
-    private static File root;
+    private final Path workspace;
+    private final boolean legacy;
 
-    static {
-        try {
-            XML_GENERIC_WS_CONTEXT = JAXBContext.newInstance(XmlGenericWorkspace.class);
-            XML_WS_CONTEXT = JAXBContext.newInstance(XmlWorkspace.class);
-        } catch (JAXBException ex) {
-            throw Throwables.propagate(ex);
-        }
+    public FileRepository(Path workspace) {
+        this.workspace = workspace;
+        this.legacy = isLegacyWorkspace(workspace);
     }
 
-    public static boolean loadCalendars(File file, boolean legacy) {
-        GregorianCalendarManager activeMgr = ProcessingContext.getActiveContext().getGregorianCalendars();
-        Class<? extends IXmlConverter<GregorianCalendarManager>> clazz = legacy
-                ? ec.tss.xml.legacy.XmlCalendars.class
-                : ec.tss.xml.calendar.XmlCalendars.class;
-        GregorianCalendarManager mgr = XmlUtil.loadLegacy(file, clazz);
-        if (mgr != null) {
-            for (String s : mgr.getNames()) {
-                if (!activeMgr.contains(s)) {
-                    IGregorianCalendarProvider cal = mgr.get(s);
-                    activeMgr.set(s, cal);
-                }
-            }
-            activeMgr.resetDirty();
-            return true;
-        } else {
-            return false;
-        }
+    public Path getRepositoryRootFolder() {
+        return java.nio.file.Paths.get(Paths.changeExtension(workspace.toAbsolutePath().toString(), null));
     }
 
-    public static boolean loadLegacyUserVariables(String vars, File file) {
-        NameManager<TsVariables> activeMgr = ProcessingContext.getActiveContext().getTsVariableManagers();
-        TsVariables mgr = XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlTsVariables.class);
-        if (mgr != null) {
-            activeMgr.set(vars, mgr);
-            activeMgr.resetDirty();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private static File getCalendarFile(File ws, String name, boolean create) {
-        String folder = getRepositoryFolder(ws, CAL, create);
-        return new File(Paths.changeExtension(Paths.concatenate(folder, name), "xml"));
-    }
-
-    private static File getVariablesFile(File ws, String name, boolean create) {
-        String folder = getRepositoryFolder(ws, VAR, create);
-        return new File(Paths.changeExtension(Paths.concatenate(folder, name), "xml"));
-    }
-
-    public static String getRepositoryFolder(File ws, String repository, boolean create) {
-        File frepo = new File(root, repository);
-        if (frepo.exists() && !frepo.isDirectory()) {
-            return null;
-        }
-        if (!frepo.exists() && create) {
-            frepo.mkdirs();
-        }
-        return frepo.getAbsolutePath();
-    }
-
-    public static File getRepositoryRootFolder(File id) {
-        return new File(Paths.changeExtension(id.getAbsolutePath(), null));
-    }
-
-    public static Map<String, SaProcessing> loadProcessing(File file) {
-        root = getRepositoryRootFolder(file);
-        Map<String, SaProcessing> sa = loadLegacy(file);
-        if (sa != null) {
-            return sa;
-        } else {
-            return load(file);
-        }
-    }
-
-    private static Map<String, SaProcessing> loadLegacy(File file) {
-        try {
-            Unmarshaller unmarshaller = XML_WS_CONTEXT.createUnmarshaller();
-            XmlWorkspace xws = (XmlWorkspace) unmarshaller.unmarshal(file);
-            if (xws == null) {
-                return null;
-            }
-            if (xws.saProcessing == null) {
-                return null;
-            }
-            legacy = true;
-            loadCalendars(getCalendarFile(file, CAL, false), true);
-            loadLegacyUserVariables(ProcessingContext.LEGACY, getVariablesFile(file, VAR, false));
-            LinkedHashMap<String, SaProcessing> sa = new LinkedHashMap<>();
-            for (XmlWksElement el : xws.saProcessing) {
-                String xfile = el.file;
-                if (xfile == null) {
-                    xfile = el.name;
-                }
-                String pfolder = getRepositoryFolder(file, SA, false);
-                File pfile = new File(pfolder, xfile);
-                SaProcessing p = loadSaProcessing(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
-                if (p != null) {
-                    sa.put(xfile, p);
-                }
-            }
-            return sa;
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    public static void write(File file, String xfile, SaProcessing processing) {
+    public void storeSaProcessing(String name, SaProcessing processing) {
         if (legacy) {
-            writeLegacy(file, xfile, processing);
+            storeLegacy(name, processing);
         } else {
-            writeInfo(file, xfile, processing);
+            store(name, processing);
         }
     }
 
-    public static void writeLegacy(File file, String xfile, SaProcessing processing) {
-        try {
-            String pfolder = getRepositoryFolder(file, SA, false);
-            String nfile = Paths.changeExtension(xfile, "xml");
-            String ofile = Paths.changeExtension(xfile, "bak");
+    public Map<String, SaProcessing> loadAllSaProcessing(ProcessingContext context) {
+        return legacy ? loadAllLegacy(context) : loadAll(context);
+    }
 
-            Path tfile = java.nio.file.Paths.get(pfolder, nfile);
-            Path bfile = java.nio.file.Paths.get(pfolder, ofile);
+    private Path getFolder(Type type) {
+        Path result = getRepositoryRootFolder().resolve(type.getPath());
+        if (Files.exists(result) && !Files.isDirectory(result)) {
+            return null;
+        }
+        return result;
+    }
+
+    private Path getFile(Type type, String fileName) {
+        return getFolder(type).resolve(Paths.changeExtension(fileName, "xml"));
+    }
+
+    private Path getVariablesFile() {
+        return getFile(Type.VAR, Type.VAR.getPath());
+    }
+
+    private Path getCalendarFile() {
+        return getFile(Type.CAL, Type.CAL.getPath());
+    }
+
+    private Map<String, SaProcessing> loadAllLegacy(ProcessingContext context) {
+        XmlWorkspace xml = XmlUtil.loadLegacyWorkspace(workspace);
+        if (xml == null) {
+            return null;
+        }
+
+        applyCalendars(loadLegacyCalendars(getCalendarFile()), context);
+        applyVariables(ProcessingContext.LEGACY, loadLegacyVariables(getVariablesFile()), context);
+
+        Map<String, SaProcessing> result = new LinkedHashMap<>();
+        if (xml.saProcessing != null) {
+            for (XmlWksElement item : xml.saProcessing) {
+                String fileName = getFileName(item);
+                SaProcessing p = loadLegacySaProcessing(getFile(Type.SA, fileName));
+                if (p != null) {
+                    result.put(fileName, p);
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<String, SaProcessing> loadAll(ProcessingContext context) {
+        XmlGenericWorkspace xml = XmlUtil.loadWorkspace(workspace);
+        if (xml == null) {
+            return null;
+        }
+
+        // load calendars (same as the legacy code)
+        applyCalendars(loadCalendars(getCalendarFile()), context);
+
+        Map<String, SaProcessing> result = new LinkedHashMap<>();
+        if (xml.items != null) {
+            for (XmlWorkspaceItem item : xml.items) {
+                String fileName = getFileName(item);
+                LinearId id = new LinearId(item.family.split(SEP));
+                if (id.equals(SA_ID)) {
+                    SaProcessing p = loadSaProcessing(getFile(Type.SA, fileName));
+                    if (p != null) {
+                        result.put(fileName, p);
+                    }
+                } else if (id.equals(VAR_ID)) {
+                    applyVariables(item.name, loadVariables(getFile(Type.VAR, fileName)), context);
+                }
+            }
+        }
+        return result;
+    }
+
+    private void storeLegacy(String name, SaProcessing processing) {
+        try {
+            Path pfolder = getFolder(Type.SA);
+            String nfile = Paths.changeExtension(name, "xml");
+            String ofile = Paths.changeExtension(name, "bak");
+
+            Path tfile = pfolder.resolve(nfile);
+            Path bfile = pfolder.resolve(ofile);
             Files.copy(tfile, bfile);
 
-            XmlUtil.storeLegacy(tfile.toFile(), XmlSaProcessing.class, processing);
+            XmlUtil.storeLegacy(tfile, XmlSaProcessing.class, processing);
         } catch (Exception ex) {
         }
     }
 
-    public static void writeInfo(File file, String xfile, SaProcessing processing) {
+    private void store(String name, SaProcessing processing) {
         try {
-            String pfolder = getRepositoryFolder(file, SA, false);
-            String nfile = Paths.changeExtension(xfile, "xml");
-            String ofile = Paths.changeExtension(xfile, "bak");
+            Path pfolder = getFolder(Type.SA);
+            String nfile = Paths.changeExtension(name, "xml");
+            String ofile = Paths.changeExtension(name, "bak");
 
-            Path tfile = java.nio.file.Paths.get(pfolder, nfile);
-            Path bfile = java.nio.file.Paths.get(pfolder, ofile);
+            Path tfile = pfolder.resolve(nfile);
+            Path bfile = pfolder.resolve(ofile);
             Files.copy(tfile, bfile, StandardCopyOption.REPLACE_EXISTING);
 
-            XmlUtil.storeInfo(tfile.toFile(), processing);
+            XmlUtil.storeInfo(tfile, processing);
         } catch (Exception ex) {
         }
     }
 
-    private static SaProcessing loadSaProcessing(File file) {
-        SaProcessing p = XmlUtil.loadLegacy(file, XmlSaProcessing.class);
-        if (p != null) {
-            return p;
+    private static boolean applyVariables(String id, TsVariables value, ProcessingContext context) {
+        NameManager<TsVariables> manager = context.getTsVariableManagers();
+        if (value != null) {
+            manager.set(id, value);
+            manager.resetDirty();
+            return true;
+        } else {
+            return false;
         }
-        return XmlUtil.loadInfo(file, SaProcessing.class);
-
     }
 
-    private static Map<String, SaProcessing> load(File file) {
-        try {
-            Unmarshaller unmarshaller = XML_GENERIC_WS_CONTEXT.createUnmarshaller();
-            XmlGenericWorkspace xws = (XmlGenericWorkspace) unmarshaller.unmarshal(file);
-            if (xws == null) {
-                return null;
-            }
-            legacy = false;
-            // load calendars (same as the legacy code)
-            loadCalendars(getCalendarFile(file, CAL, false), false);
-            // search for processing
-            LinkedHashMap<String, SaProcessing> sa = new LinkedHashMap<>();
-            for (XmlWorkspaceItem el : xws.items) {
-                LinearId curid = new LinearId(el.family.split(SEP));
-                if (curid.equals(ID)) {
-                    String xfile = el.file;
-                    if (xfile == null) {
-                        xfile = el.name;
-                    }
-                    String pfolder = getRepositoryFolder(file, SA, false);
-                    File pfile = new File(pfolder, xfile);
-                    SaProcessing p = loadSaProcessing(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
-                    if (p != null) {
-                        sa.put(xfile, p);
-                    }
-                } else if (curid.equals(VID)) {
-                    String xfile = el.file;
-                    if (xfile == null) {
-                        xfile = el.name;
-                    }
-                    String pfolder = getRepositoryFolder(file, VAR, false);
-                    File pfile = new File(pfolder, xfile);
-                    TsVariables v = loadVariables(new File(Paths.changeExtension(pfile.getAbsolutePath(), "xml")));
-                    if (v != null) {
-                        ProcessingContext.getActiveContext().getTsVariableManagers().set(el.name, v);
-                    }
-
+    private static boolean applyCalendars(GregorianCalendarManager value, ProcessingContext context) {
+        GregorianCalendarManager manager = context.getGregorianCalendars();
+        if (value != null) {
+            for (String s : value.getNames()) {
+                if (!manager.contains(s)) {
+                    IGregorianCalendarProvider cal = value.get(s);
+                    manager.set(s, cal);
                 }
             }
-            return sa;
-        } catch (Exception ex) {
-            return null;
+            manager.resetDirty();
+            return true;
+        } else {
+            return false;
         }
     }
 
-    private static TsVariables loadVariables(File file) {
-        TsVariables vars = XmlUtil.loadInfo(file, TsVariables.class);
-        if (vars == null) {
-            vars = XmlUtil.loadLegacy(file, ec.tss.xml.regression.XmlTsVariables.class);
-        }
-        return vars;
+    private static String getFileName(XmlWksElement item) {
+        return item.file != null ? item.file : item.name;
+    }
+
+    private static String getFileName(XmlWorkspaceItem item) {
+        return item.file != null ? item.file : item.name;
+    }
+
+    private static boolean isLegacyWorkspace(Path file) {
+        return XmlUtil.loadLegacyWorkspace(file) != null;
+    }
+
+    private static TsVariables loadVariables(Path file) {
+        return XmlUtil.loadInfo(file, TsVariables.class);
+    }
+
+    private static TsVariables loadLegacyVariables(Path file) {
+        return XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlTsVariables.class);
+    }
+
+    private static GregorianCalendarManager loadCalendars(Path file) {
+        return XmlUtil.loadLegacy(file, ec.tss.xml.calendar.XmlCalendars.class);
+    }
+
+    private static GregorianCalendarManager loadLegacyCalendars(Path file) {
+        return XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlCalendars.class);
+    }
+
+    private static SaProcessing loadSaProcessing(Path file) {
+        return XmlUtil.loadInfo(file, SaProcessing.class);
+    }
+
+    private static SaProcessing loadLegacySaProcessing(Path file) {
+        return XmlUtil.loadLegacy(file, XmlSaProcessing.class);
     }
 }

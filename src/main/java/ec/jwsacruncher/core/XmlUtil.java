@@ -16,12 +16,18 @@
  */
 package ec.jwsacruncher.core;
 
+import ec.jwsacruncher.xml.XmlGenericWorkspace;
+import ec.jwsacruncher.xml.XmlWorkspace;
 import ec.tss.xml.IXmlConverter;
 import ec.tss.xml.information.XmlInformationSet;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.information.InformationSetSerializable;
 import ec.tstoolkit.utilities.IModifiable;
-import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -37,21 +43,37 @@ final class XmlUtil {
         // static class
     }
 
-    static <S, X extends IXmlConverter<S>> S loadLegacy(File file, Class<X> type) {
-        if (!file.exists() || !file.canRead()) {
+    static XmlGenericWorkspace loadWorkspace(Path file) {
+        try {
+            return (XmlGenericWorkspace) unmarshal(file, XML_GENERIC_WS_CONTEXT);
+        } catch (JAXBException | IOException ex) {
+            return null;
+        }
+    }
+
+    static XmlWorkspace loadLegacyWorkspace(Path file) {
+        try {
+            return (XmlWorkspace) unmarshal(file, XML_WS_CONTEXT);
+        } catch (JAXBException | IOException ex) {
+            return null;
+        }
+    }
+
+    static <S, X extends IXmlConverter<S>> S loadLegacy(Path file, Class<X> type) {
+        if (!Files.exists(file) || !Files.isReadable(file)) {
             return null;
         }
 
         try {
             X jaxbElement = unmarshalLegacy(file, type);
             return jaxbElement.create();
-        } catch (JAXBException ex) {
+        } catch (JAXBException | IOException ex) {
             return null;
         }
     }
 
-    static <X extends InformationSetSerializable> X loadInfo(File file, Class<X> type) {
-        if (!file.exists() || !file.canRead()) {
+    static <X extends InformationSetSerializable> X loadInfo(Path file, Class<X> type) {
+        if (!Files.exists(file) || !Files.isReadable(file)) {
             return null;
         }
 
@@ -62,12 +84,12 @@ final class XmlUtil {
                 return null;
             }
             return result;
-        } catch (JAXBException | InstantiationException | IllegalAccessException ex) {
+        } catch (JAXBException | InstantiationException | IllegalAccessException | IOException ex) {
             return null;
         }
     }
 
-    static <T, X extends IXmlConverter<T>> boolean storeLegacy(File file, Class<X> type, T item) {
+    static <T, X extends IXmlConverter<T>> boolean storeLegacy(Path file, Class<X> type, T item) {
         try {
             X jaxbElement = type.newInstance();
             jaxbElement.copy(item);
@@ -76,12 +98,12 @@ final class XmlUtil {
                 ((IModifiable) item).resetDirty();
             }
             return true;
-        } catch (InstantiationException | IllegalAccessException | JAXBException ex) {
+        } catch (InstantiationException | IllegalAccessException | JAXBException | IOException ex) {
             return false;
         }
     }
 
-    static <T extends InformationSetSerializable> boolean storeInfo(File file, T item) {
+    static <T extends InformationSetSerializable> boolean storeInfo(Path file, T item) {
         InformationSet info = item.write(false);
         if (info == null) {
             return false;
@@ -91,42 +113,58 @@ final class XmlUtil {
         try {
             marshalInfo(file, jaxbElement);
             return true;
-        } catch (JAXBException ex) {
+        } catch (JAXBException | IOException ex) {
             return false;
         }
     }
 
-    private static <X extends IXmlConverter<?>> X unmarshalLegacy(File file, Class<X> type) throws JAXBException {
+    private static <X extends IXmlConverter<?>> X unmarshalLegacy(Path file, Class<X> type) throws JAXBException, IOException {
         return (X) unmarshal(file, JAXBContext.newInstance(type));
     }
 
-    private static XmlInformationSet unmarshalInfo(File file) throws JAXBException {
+    private static XmlInformationSet unmarshalInfo(Path file) throws JAXBException, IOException {
         return (XmlInformationSet) unmarshal(file, XML_INFORMATION_SET_CONTEXT);
     }
 
-    private static Object unmarshal(File file, JAXBContext context) throws JAXBException {
+    private static Object unmarshal(Path file, JAXBContext context) throws JAXBException, IOException {
         Unmarshaller unmarshaller = context.createUnmarshaller();
-        return unmarshaller.unmarshal(file);
+        try {
+            return unmarshaller.unmarshal(file.toFile());
+        } catch (UnsupportedOperationException ex) {
+            try (Reader reader = Files.newBufferedReader(file)) {
+                return unmarshaller.unmarshal(reader);
+            }
+        }
     }
 
-    private static void marshalLegacy(File file, IXmlConverter<?> jaxbElement) throws JAXBException {
+    private static void marshalLegacy(Path file, IXmlConverter<?> jaxbElement) throws JAXBException, IOException {
         marshal(file, JAXBContext.newInstance(jaxbElement.getClass()), jaxbElement);
     }
 
-    private static void marshalInfo(File file, XmlInformationSet jaxbElement) throws JAXBException {
+    private static void marshalInfo(Path file, XmlInformationSet jaxbElement) throws JAXBException, IOException {
         marshal(file, XML_INFORMATION_SET_CONTEXT, jaxbElement);
     }
 
-    private static void marshal(File file, JAXBContext context, Object jaxbElement) throws JAXBException {
+    private static void marshal(Path file, JAXBContext context, Object jaxbElement) throws JAXBException, IOException {
         Marshaller marshaller = context.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(jaxbElement, file);
+        try {
+            marshaller.marshal(jaxbElement, file.toFile());
+        } catch (UnsupportedOperationException ex) {
+            try (Writer writer = Files.newBufferedWriter(file)) {
+                marshaller.marshal(jaxbElement, writer);
+            }
+        }
     }
 
+    private static final JAXBContext XML_GENERIC_WS_CONTEXT;
+    private static final JAXBContext XML_WS_CONTEXT;
     private static final JAXBContext XML_INFORMATION_SET_CONTEXT;
 
     static {
         try {
+            XML_GENERIC_WS_CONTEXT = JAXBContext.newInstance(XmlGenericWorkspace.class);
+            XML_WS_CONTEXT = JAXBContext.newInstance(XmlWorkspace.class);
             XML_INFORMATION_SET_CONTEXT = JAXBContext.newInstance(XmlInformationSet.class);
         } catch (JAXBException ex) {
             throw new RuntimeException(ex);
