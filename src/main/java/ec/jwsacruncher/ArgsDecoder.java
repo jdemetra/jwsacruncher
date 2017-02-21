@@ -63,11 +63,12 @@ final class ArgsDecoder {
                             return null;
                         }
                         try {
-                            return Maps.immutableEntry(file, readConfig(new File(str)));
+                            config = readConfig(new File(str));
                         } catch (JAXBException e) {
                             System.out.print("Invalid configuration file");
                             return null;
                         }
+                        break;
                     }
                     case "-d": {
                         String str = getParamOrNull(args, cur++);
