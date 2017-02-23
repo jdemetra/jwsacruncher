@@ -22,6 +22,7 @@ import ec.jwsacruncher.xml.XmlWorkspace;
 import ec.jwsacruncher.xml.XmlWorkspaceItem;
 import ec.satoolkit.GenericSaProcessingFactory;
 import ec.tss.sa.SaProcessing;
+import ec.tss.xml.IXmlConverter;
 import ec.tss.xml.sa.XmlSaProcessing;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
@@ -223,19 +224,20 @@ public final class FileRepository {
     }
 
     private static TsVariables loadVariables(Path file) {
-        return XmlUtil.loadInfo(file, TsVariables.class);
+        TsVariables result = XmlUtil.loadInfo(file, TsVariables.class);
+        return result != null ? result : XmlUtil.loadLegacy(file, REGRESSION_VAR_CLASS);
     }
 
     private static TsVariables loadLegacyVariables(Path file) {
-        return XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlTsVariables.class);
+        return XmlUtil.loadLegacy(file, LEGACY_VAR_CLASS);
     }
 
     private static GregorianCalendarManager loadCalendars(Path file) {
-        return XmlUtil.loadLegacy(file, ec.tss.xml.calendar.XmlCalendars.class);
+        return XmlUtil.loadLegacy(file, CAL_CLASS);
     }
 
     private static GregorianCalendarManager loadLegacyCalendars(Path file) {
-        return XmlUtil.loadLegacy(file, ec.tss.xml.legacy.XmlCalendars.class);
+        return XmlUtil.loadLegacy(file, LEGACY_CLASS);
     }
 
     private static SaProcessing loadSaProcessing(Path file) {
@@ -245,4 +247,10 @@ public final class FileRepository {
     private static SaProcessing loadLegacySaProcessing(Path file) {
         return XmlUtil.loadLegacy(file, XmlSaProcessing.class);
     }
+
+    private static final Class<? extends IXmlConverter<GregorianCalendarManager>> CAL_CLASS = ec.tss.xml.calendar.XmlCalendars.class;
+    private static final Class<? extends IXmlConverter<GregorianCalendarManager>> LEGACY_CLASS = ec.tss.xml.legacy.XmlCalendars.class;
+
+    private static final Class<? extends IXmlConverter<TsVariables>> LEGACY_VAR_CLASS = ec.tss.xml.legacy.XmlTsVariables.class;
+    private static final Class<? extends IXmlConverter<TsVariables>> REGRESSION_VAR_CLASS = ec.tss.xml.regression.XmlTsVariables.class;
 }
