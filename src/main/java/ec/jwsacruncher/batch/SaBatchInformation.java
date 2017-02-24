@@ -16,7 +16,7 @@
 */
 
 
-package ec.jwsacruncher;
+package ec.jwsacruncher.batch;
 
 import ec.tss.TsInformationType;
 import ec.tss.sa.SaItem;

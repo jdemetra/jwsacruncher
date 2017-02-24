@@ -42,32 +42,39 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- compile and runtime -->
+        <!-- compile only -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.21</version>
-            <!--<scope>runtime</scope>-->
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- compile and runtime -->
         <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-tss</artifactId>
         </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-common</artifactId>
-        </dependency>
         <!-- runtime only -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.22</version>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-spreadsheet</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!--dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>demetra-odbc</artifactId>
             <scope>runtime</scope>
-        </dependency-->
+        </dependency>
         <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-jdbc</artifactId>
@@ -76,6 +83,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>demetra-sdmx</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>demetra-common</artifactId>
             <scope>runtime</scope>
         </dependency>
         <!-- test only -->

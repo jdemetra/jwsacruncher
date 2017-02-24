@@ -16,53 +16,46 @@
  */
 package ec.jwsacruncher;
 
+import com.google.common.base.Stopwatch;
+import ec.jwsacruncher.core.FileRepository;
+import ec.jwsacruncher.batch.SaBatchProcessor;
+import ec.jwsacruncher.batch.SaBatchInformation;
 import ec.tss.ITsProvider;
 import ec.tss.TsFactory;
 import ec.tss.sa.EstimationPolicyType;
+import ec.tss.sa.ISaDiagnosticsFactory;
+import ec.tss.sa.ISaProcessingFactory;
 import ec.tss.sa.SaManager;
 import ec.tss.sa.SaProcessing;
-import ec.tss.sa.diagnostics.*;
 import ec.tss.sa.output.BasicConfiguration;
 import ec.tss.sa.output.CsvMatrixOutputConfiguration;
 import ec.tss.sa.output.CsvMatrixOutputFactory;
 import ec.tss.sa.output.CsvOutputConfiguration;
 import ec.tss.sa.output.CsvOutputFactory;
-import ec.tss.sa.processors.TramoSeatsProcessor;
-import ec.tss.sa.processors.X13Processor;
 import ec.tss.tsproviders.IFileLoader;
 import ec.tss.tsproviders.TsProviders;
-import ec.tss.tsproviders.common.random.RandomProvider;
+import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.utilities.Paths;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  *
  * @author Kristof Bayens
  */
-public class App {
-
-    static WsaConfig Config;
-    static File file;
-    //static String File = "My Documents\\Demetra+\\Workspace_1.xml";
+public final class App {
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        long T0 = System.currentTimeMillis();
-        Config = new WsaConfig();
-        if (!decodeArgs(args)) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        Entry<File, WsaConfig> config = ArgsDecoder.decodeArgs(args);
+        if (config == null) {
             System.out.println("Wrong arguments");
             return;
         }
@@ -70,230 +63,97 @@ public class App {
         if (args == null || args.length == 0) {
             return;
         }
-        if (file == null) {
+
+        if (config.getValue() == null) {
             return;
         }
-        File[] paths;
-        if (Config.Paths != null) {
-            paths = new File[Config.Paths.length];
-            for (int i = 0; i < paths.length; ++i) {
-                paths[i] = new File(Config.Paths[i]);
-            }
-        } else {
-            paths = new File[0];
-        }
 
-        // providers
-        TsFactory.instance.addAll(ServiceLoader.load(ITsProvider.class));
-        TsFactory.instance.add(new RandomProvider());
-        for (IFileLoader o : TsProviders.all().filter(IFileLoader.class)) {
-            o.setPaths(paths);
-        }
+        loadResources();
+        process(new FileRepository(config.getKey().toPath()), ProcessingContext.getActiveContext(), config.getValue());
 
-        // methods
-        SaManager.instance.add(new TramoSeatsProcessor());
-        SaManager.instance.add(new X13Processor());
+        System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
+    }
 
-        // diagnostics
-        SaManager.instance.add(new CoherenceDiagnosticsFactory());
-        SaManager.instance.add(new ResidualsDiagnosticsFactory());
-        SaManager.instance.add(new OutOfSampleDiagnosticsFactory());
-        SaManager.instance.add(new ResidualSeasonalityDiagnosticsFactory());
-        SaManager.instance.add(new SpectralDiagnosticsFactory());
-        SaManager.instance.add(new MDiagnosticsFactory());
-        SaManager.instance.add(new SeatsDiagnosticsFactory());
-
-        Map<String, SaProcessing> sa = FileRepository.loadProcessing(file);
+    private static void process(FileRepository repository, ProcessingContext context, WsaConfig config) {
+        Map<String, SaProcessing> sa = repository.loadAllSaProcessing(context);
         if (sa == null || sa.isEmpty()) {
             return;
         }
-        if (App.Config.ndecs != null) {
-            BasicConfiguration.setDecimalNumber(App.Config.ndecs);
+
+        applyFilePaths(getFilePaths(config));
+        applyOutputConfig(config, repository);
+
+        sa.entrySet().forEach(o -> process(repository, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize));
+    }
+
+    private static void process(FileRepository repository, String name, SaProcessing processing, EstimationPolicyType policy, int bundleSize) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        System.out.println("Refreshing data");
+        processing.refresh(policy, false);
+        SaBatchInformation info = new SaBatchInformation(processing.size() > bundleSize ? bundleSize : 0);
+        info.setName(name);
+        info.setItems(processing);
+        SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
+        processor.process();
+
+        System.out.println("Saving new processing...");
+        repository.storeSaProcessing(name, processing);
+
+        System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
+    }
+
+    private static void loadResources() {
+        ServiceLoader.load(ITsProvider.class).forEach(TsFactory.instance::add);
+        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
+        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(SaManager.instance::add);
+    }
+
+    private static void applyFilePaths(File[] paths) {
+        TsProviders.all().filter(IFileLoader.class).forEach(o -> o.setPaths(paths));
+    }
+
+    private static void applyOutputConfig(WsaConfig config, FileRepository repository) {
+        if (config.ndecs != null) {
+            BasicConfiguration.setDecimalNumber(config.ndecs);
         }
-        if (App.Config.csvsep != null && App.Config.csvsep.length()==1) {
-            BasicConfiguration.setCsvSeparator(App.Config.csvsep.charAt(0));
+        if (config.csvsep != null && config.csvsep.length() == 1) {
+            BasicConfiguration.setCsvSeparator(config.csvsep.charAt(0));
         }
 
-        CsvOutputConfiguration csvconfig = new CsvOutputConfiguration();
-        if (App.Config.Output == null) {
-            App.Config.Output = Paths.concatenate(FileRepository.getRepositoryRootFolder(file), "Output");
+        if (config.Output == null) {
+            config.Output = Paths.concatenate(repository.getRepositoryRootFolder().toAbsolutePath().toString(), "Output");
         }
-        File output = new File(App.Config.Output);
+        File output = new File(config.Output);
         if (!output.exists()) {
             output.mkdirs();
         }
-        csvconfig.setFolder(new File(App.Config.Output));
-        csvconfig.setPresentation(App.Config.getLayout());
-        csvconfig.setSeries(Arrays.asList(App.Config.TSMatrix));
-        CsvOutputFactory fac = new CsvOutputFactory(csvconfig);
 
-        CsvMatrixOutputConfiguration mcsvconfig = new CsvMatrixOutputConfiguration();
-        mcsvconfig.setFolder(new File(App.Config.Output));
-        if (App.Config.Matrix != null) {
-            mcsvconfig.setItems(Arrays.asList(App.Config.Matrix));
-        }
-        CsvMatrixOutputFactory mfac = new CsvMatrixOutputFactory(mcsvconfig);
-
-        SaManager.instance.add(fac);
-        SaManager.instance.add(mfac);
-        for (Entry<String, SaProcessing> entry : sa.entrySet()) {
-            SaProcessing processing = entry.getValue();
-            long t0 = System.currentTimeMillis();
-            System.out.println("Refreshing data");
-            processing.refresh(Config.getPolicy(), false);
-            SaBatchInformation info;
-            if (processing.size() > Config.BundleSize) {
-                info = new SaBatchInformation(Config.BundleSize);
-            } else {
-                info = new SaBatchInformation(0);
-            }
-            info.setName(entry.getKey());
-            info.setItems(processing);
-            SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
-            processor.process();
-            System.out.println("Saving new processing...");
-            FileRepository.write(file, entry.getKey(), processing);
-            System.out.print("Processing time: ");
-            System.out.print(.001 * (System.currentTimeMillis() - t0));
-            System.out.println();
-        }
-
-        long T1 = System.currentTimeMillis();
-        System.out.print("Total processing time: ");
-        System.out.print(.001 * (T1 - T0));
-        System.out.println();
+        // TODO: apply instead of add
+        SaManager.instance.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
+        SaManager.instance.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
     }
 
-    private static boolean decodeArgs(String[] args) {
-        if (args == null || args.length == 0) {
-            try {
-                JAXBContext context = JAXBContext.newInstance(WsaConfig.class);
-                Marshaller marshaller = context.createMarshaller();
-                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-                marshaller.marshal(App.Config, new FileWriter("wsacruncher.params"));
-            } catch (JAXBException | IOException e) {
-                System.err.println("Failed to create params file: " + e.getMessage());
-            }
-            return true;
-        }
-        //
-        int cur = 0;
-        while (cur < args.length) {
-            String cmd = args[cur++];
-            if (cmd.length() == 0) {
-                return false;
-            }
-            if (cmd.charAt(0) != '-') {
-                file = new File(cmd);
-            } else {
-                if (cmd.equals("-x") || cmd.equals("-X")) {
-                    if (cur == args.length) {
-                        return false;
-                    }
-                    String str = args[cur++];
-                    if (str.length() == 0 || str.charAt(0) == '-') {
-                        return false;
-                    }
-                    try {
-                        JAXBContext context = JAXBContext.newInstance(WsaConfig.class);
-                        Unmarshaller unmarshaller = context.createUnmarshaller();
-                        App.Config = (WsaConfig) unmarshaller.unmarshal(new FileReader(str));
-                        return true;
-                    } catch (JAXBException | FileNotFoundException e) {
-                        System.out.print("Invalid configuration file");
-                        return false;
-                    }
-                }
-                if (cmd.equals("-d")) {
-                    if (cur == args.length) {
-                        return false;
-                    }
-                    String str = args[cur++];
-                    if (str.length() == 0 || str.charAt(0) == '-') {
-                        return false;
-                    }
-                    Config.Output = str;
-                } else if (cmd.equals("-m")) {
-                    if (cur == args.length) {
-                        return false;
-                    }
-                    String str = args[cur++];
-                    if (str.length() == 0 || str.charAt(0) == '-') {
-                        return false;
-                    }
-                    try {
-                        FileReader fr = new FileReader(str);
-                        BufferedReader br = new BufferedReader(fr);
-                        List<String> items = new ArrayList<>();
-                        while (true) {
-                            String line = br.readLine();
-                            if (line == null) {
-                                break;
-                            }
-                            items.add(line);
-                        }
-                        Config.Matrix = items.toArray(new String[items.size()]);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                } else if (cmd.equals("-p")) {
-                    if (cur == args.length) {
-                        return false;
-                    }
-                    String str = args[cur++];
-                    if (str.length() == 0 || str.charAt(0) == '-') {
-                        return false;
-                    }
-                    Config.policy = str;
-                    if (Config.getPolicy() == EstimationPolicyType.None) {
-                        return false;
-                    }
-                } else if (cmd.equals("-f")) {
-                    if (cur == args.length) {
-                        return false;
-                    }
-                    String str = args[cur++];
-                    if (str.length() == 0 || str.charAt(0) == '-') {
-                        return false;
-                    }
-                    Config.layout = str;
-                } else if (cmd.equals("-t")) {
-                    // No longer supported
-                    // App.Config.Diagnostics = true;
-                } else {
-                    return false;
-                }
-            }
-        }
-        return true;
+    private static File[] getFilePaths(WsaConfig config) {
+        return config.Paths != null
+                ? Stream.of(config.Paths).map(File::new).toArray(File[]::new)
+                : new File[0];
     }
-//    public static <T> T read(String file, Class<T> tclass) {
-//        Object o = null;
-//        try {
-//            JAXBContext context = JAXBContext.newInstance(tclass);
-//            Unmarshaller unmarshaller = context.createUnmarshaller();
-//            o = unmarshaller.unmarshal(new FileReader(file));
-//        }
-//        catch(JAXBException ex) {
-//
-//        }
-//        catch(IOException ex) {
-//
-//        }
-//        return (T)o;
-//    }
-//
-//    public static void write(String file, IXmlConverter t) {
-//        try {
-//            JAXBContext context = JAXBContext.newInstance(t.getClass());
-//            Marshaller marshaller = context.createMarshaller();
-//            marshaller.marshal(t, new FileWriter(file));
-//        }
-//        catch(JAXBException ex) {
-//
-//        }
-//        catch(IOException ex) {
-//
-//        }
-//    }
+
+    private static CsvOutputConfiguration getCsvOutputConfiguration(WsaConfig config) {
+        CsvOutputConfiguration result = new CsvOutputConfiguration();
+        result.setFolder(new File(config.Output));
+        result.setPresentation(config.getLayout());
+        result.setSeries(Arrays.asList(config.TSMatrix));
+        return result;
+    }
+
+    private static CsvMatrixOutputConfiguration getCsvMatrixOutputConfiguration(WsaConfig config) {
+        CsvMatrixOutputConfiguration result = new CsvMatrixOutputConfiguration();
+        result.setFolder(new File(config.Output));
+        if (config.Matrix != null) {
+            result.setItems(Arrays.asList(config.Matrix));
+        }
+        return result;
+    }
 }

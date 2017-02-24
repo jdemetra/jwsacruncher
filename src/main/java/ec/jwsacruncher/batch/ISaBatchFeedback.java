@@ -16,16 +16,13 @@
 */
 
 
-package ec.jwsacruncher;
-
-import ec.tss.sa.SaItem;
-import java.util.Collection;
+package ec.jwsacruncher.batch;
 
 /**
  *
  * @author Kristof Bayens
  */
-public interface ISaBundle {
-    Collection<SaItem> getItems();
-    void flush(ISaBatchFeedback fb);
+public interface ISaBatchFeedback {
+    void showAction(String action);
+    void showItem(String item, String msg);
 }
