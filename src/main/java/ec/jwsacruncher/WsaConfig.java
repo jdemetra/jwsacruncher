@@ -61,14 +61,17 @@ public class WsaConfig {
     public EstimationPolicyType getPolicy() {
         if (policy == null) {
             return EstimationPolicyType.None;
+        } else if (policy.equalsIgnoreCase("n")
+                || policy.equalsIgnoreCase("current")) {
+            return EstimationPolicyType.Fixed;
         } else if (policy.equalsIgnoreCase("f")
-                || policy.equalsIgnoreCase("fixed")) {
+                || policy.equalsIgnoreCase("fixed") || policy.equalsIgnoreCase("fixedparameters")) {
             return EstimationPolicyType.FixedParameters;
         } else if (policy.equalsIgnoreCase("p")
                 || policy.equalsIgnoreCase("parameters")) {
             return EstimationPolicyType.FreeParameters;
         } else if (policy.equalsIgnoreCase("c")
-                || policy.equalsIgnoreCase("complete")) {
+                || policy.equalsIgnoreCase("complete") || policy.equalsIgnoreCase("concurrent")) {
             return EstimationPolicyType.Complete;
         } else if (policy.equalsIgnoreCase("o")
                 || policy.equalsIgnoreCase("outliers")) {
