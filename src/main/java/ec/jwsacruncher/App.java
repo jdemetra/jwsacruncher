@@ -17,6 +17,8 @@
 package ec.jwsacruncher;
 
 import com.google.common.base.Stopwatch;
+import ec.demetra.workspace.WorkspaceItem;
+import ec.demetra.workspace.file.FileWorkspace;
 import ec.jwsacruncher.core.FileRepository;
 import ec.jwsacruncher.batch.SaBatchProcessor;
 import ec.jwsacruncher.batch.SaBatchInformation;
@@ -37,9 +39,13 @@ import ec.tss.tsproviders.TsProviders;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.utilities.Paths;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 /**
@@ -69,36 +75,43 @@ public final class App {
         }
 
         loadResources();
-        process(new FileRepository(config.getKey().toPath()), ProcessingContext.getActiveContext(), config.getValue());
+
+        try (FileWorkspace ws = FileWorkspace.open(config.getKey().toPath())) {
+            process(ws, ProcessingContext.getActiveContext(), config.getValue());
+        } catch (IOException ex) {
+            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 
-    private static void process(FileRepository repository, ProcessingContext context, WsaConfig config) {
-        Map<String, SaProcessing> sa = repository.loadAllSaProcessing(context);
-        if (sa == null || sa.isEmpty()) {
+    private static void process(FileWorkspace ws, ProcessingContext context, WsaConfig config) throws IOException {
+        Map<WorkspaceItem, SaProcessing> sa = FileRepository.loadAllSaProcessing(ws, context);
+        if (sa.isEmpty()) {
             return;
         }
 
         applyFilePaths(getFilePaths(config));
-        applyOutputConfig(config, repository);
+        applyOutputConfig(config, ws.getRootFolder());
 
-        sa.entrySet().forEach(o -> process(repository, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize));
+        for (Entry<WorkspaceItem, SaProcessing> o : sa.entrySet()) {
+            process(ws, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize);
+        }
     }
 
-    private static void process(FileRepository repository, String name, SaProcessing processing, EstimationPolicyType policy, int bundleSize) {
+    private static void process(FileWorkspace ws, WorkspaceItem item, SaProcessing processing, EstimationPolicyType policy, int bundleSize) throws IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         System.out.println("Refreshing data");
         processing.refresh(policy, false);
         SaBatchInformation info = new SaBatchInformation(processing.size() > bundleSize ? bundleSize : 0);
-        info.setName(name);
+        info.setName(item.getId());
         info.setItems(processing);
         SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
         processor.process();
 
         System.out.println("Saving new processing...");
-        repository.storeSaProcessing(name, processing);
+        FileRepository.storeSaProcessing(ws, item, processing);
 
         System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
@@ -113,7 +126,7 @@ public final class App {
         TsProviders.all().filter(IFileLoader.class).forEach(o -> o.setPaths(paths));
     }
 
-    private static void applyOutputConfig(WsaConfig config, FileRepository repository) {
+    private static void applyOutputConfig(WsaConfig config, Path rootFolder) {
         if (config.ndecs != null) {
             BasicConfiguration.setDecimalNumber(config.ndecs);
         }
@@ -122,7 +135,7 @@ public final class App {
         }
 
         if (config.Output == null) {
-            config.Output = Paths.concatenate(repository.getRepositoryRootFolder().toAbsolutePath().toString(), "Output");
+            config.Output = Paths.concatenate(rootFolder.toAbsolutePath().toString(), "Output");
         }
         File output = new File(config.Output);
         if (!output.exists()) {
