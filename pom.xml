@@ -25,6 +25,7 @@
         <jdk.version>1.8</jdk.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <appassembler-maven-plugin.version>1.8</appassembler-maven-plugin.version>
+        <maven-assembly-plugin>2.6</maven-assembly-plugin>
         <!-- dependencies -->
         <demetra.version>2.2.0-SNAPSHOT</demetra.version>
     </properties>
@@ -65,7 +66,7 @@
         <!-- runtime only -->
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
+            <artifactId>slf4j-jdk14</artifactId>
             <version>1.7.22</version>
             <scope>runtime</scope>
         </dependency>
@@ -151,6 +152,13 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <repositoryLayout>flat</repositoryLayout>
+                    <repositoryName>lib</repositoryName>
+                    <endorsedDir>lib/ext</endorsedDir>
+                    <assembleDirectory>${project.build.directory}/jwsacruncher-${project.version}</assembleDirectory>
+                    <configurationDirectory>etc</configurationDirectory>
+                    <copyConfigurationDirectory>true</copyConfigurationDirectory>
+                    <extraJvmArguments>-Djava.util.logging.config.file=@BASEDIR@/etc/logging.properties</extraJvmArguments>
                     <programs>
                         <program>
                             <mainClass>ec.jwsacruncher.App</mainClass>
@@ -158,6 +166,27 @@
                         </program>
                     </programs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>${maven-assembly-plugin}</version>
+                <configuration>
+                    <finalName>jdemetra-cli-${project.version}</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <descriptors>
+                        <descriptor>src/assembly/app-assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
