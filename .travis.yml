@@ -12,3 +12,12 @@ addons:
 cache:
   directories:
     - $HOME/.m2
+
+deploy:
+  provider: script
+  script: mvn deploy -Dmaven.test.skip -s settings.xml
+  skip_cleanup: true
+  on:
+    branch: develop
+    jdk: oraclejdk8
+    condition: $TRAVIS_PULL_REQUEST = "false"
