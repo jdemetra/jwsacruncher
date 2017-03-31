@@ -40,18 +40,20 @@ import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.utilities.Paths;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 /**
  *
  * @author Kristof Bayens
  */
+@lombok.extern.java.Log
 public final class App {
 
     /**
@@ -79,7 +81,7 @@ public final class App {
         try (FileWorkspace ws = FileWorkspace.open(config.getKey().toPath())) {
             process(ws, ProcessingContext.getActiveContext(), config.getValue());
         } catch (IOException ex) {
-            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+            log.log(Level.SEVERE, null, ex);
         }
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
@@ -117,9 +119,24 @@ public final class App {
     }
 
     private static void loadResources() {
+        loadFileProperties();
         ServiceLoader.load(ITsProvider.class).forEach(TsFactory.instance::add);
         ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
         ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(SaManager.instance::add);
+    }
+
+    private static void loadFileProperties() {
+        String basedir = System.getProperty("basedir");
+        if (basedir != null) {
+            Path file = java.nio.file.Paths.get(basedir, "etc", "system.properties");
+            try (InputStream stream = Files.newInputStream(file)) {
+                Properties properties = new Properties();
+                properties.load(stream);
+                System.getProperties().putAll(properties);
+            } catch (IOException ex) {
+                log.log(Level.WARNING, "While loading system properties", ex);
+            }
+        }
     }
 
     private static void applyFilePaths(File[] paths) {
