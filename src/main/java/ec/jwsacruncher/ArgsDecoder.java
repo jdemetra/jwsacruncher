@@ -18,10 +18,16 @@ package ec.jwsacruncher;
 
 import com.google.common.collect.Maps;
 import ec.tss.sa.EstimationPolicyType;
+import ec.tss.sa.ISaDiagnosticsFactory;
+import ec.tss.sa.ISaProcessingFactory;
+import ec.tss.sa.SaManager;
+import ec.tss.sa.output.BasicConfiguration;
+import ec.tstoolkit.information.InformationMapping;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map.Entry;
+import java.util.ServiceLoader;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -37,6 +43,10 @@ final class ArgsDecoder {
         WsaConfig config = new WsaConfig();
         if (args == null || args.length == 0) {
             try {
+                loadAll();
+                // series
+                config.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(config.TSMatrix);
+                config.Matrix = BasicConfiguration.allSaDetails(true).toArray(config.Matrix);
                 writeConfig(new File("wsacruncher.params"), config);
             } catch (JAXBException e) {
                 System.err.println("Failed to create params file: " + e.getMessage());
@@ -147,5 +157,18 @@ final class ArgsDecoder {
 
     private static String[] readMatrixConfig(File file) throws IOException {
         return Files.readAllLines(file.toPath()).toArray(new String[0]);
+    }
+
+    private static void loadAll() {
+        // update the possible items
+        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
+        // load and enables all diagnostics
+        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
+                diag -> {
+                    diag.setEnabled(true);
+                    SaManager.instance.add(diag);
+                });
+        InformationMapping.updateAll(null);
+
     }
 }
