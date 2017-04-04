@@ -37,6 +37,8 @@ import ec.tss.sa.output.CsvOutputFactory;
 import ec.tss.tsproviders.IFileLoader;
 import ec.tss.tsproviders.TsProviders;
 import ec.tstoolkit.algorithm.ProcessingContext;
+import ec.tstoolkit.information.InformationMapping;
+import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.utilities.Paths;
 import java.io.File;
 import java.io.IOException;
@@ -77,6 +79,7 @@ public final class App {
         }
 
         loadResources();
+        enableDiagnostics(config.getValue().Matrix);
 
         try (FileWorkspace ws = FileWorkspace.open(config.getKey().toPath())) {
             process(ws, ProcessingContext.getActiveContext(), config.getValue());
@@ -123,6 +126,7 @@ public final class App {
         ServiceLoader.load(ITsProvider.class).forEach(TsFactory.instance::add);
         ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
         ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(SaManager.instance::add);
+        InformationMapping.updateAll(null);
     }
 
     private static void loadFileProperties() {
@@ -186,4 +190,26 @@ public final class App {
         }
         return result;
     }
+    
+    private static final String DIAGNOSTICS = "diagnostics";
+    
+    private static void enableDiagnostics(String[] items) {
+        // step 1. We retrieve the used diagnostics
+        Set<String> diags = new HashSet<>();
+        if (items != null) {
+            for (int i = 0; i < items.length; ++i) {
+                if (InformationSet.isPrefix(items[i], DIAGNOSTICS)) {
+                    int start = DIAGNOSTICS.length() + 1;
+                    int end = items[i].indexOf(InformationSet.SEP, start);
+                    if (end > 0) {
+                        String diag = items[i].substring(start, end);
+                        diags.add(diag);
+                    }
+                }
+            }
+        }
+        // step 2. Enable/disables diag
+        SaManager.instance.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
+    }
+    
 }
