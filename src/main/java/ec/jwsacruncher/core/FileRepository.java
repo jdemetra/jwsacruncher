@@ -52,7 +52,7 @@ public class FileRepository {
             if (family.equals(WorkspaceFamily.UTIL_CAL)) {
                 applyCalendars(context, (GregorianCalendarManager) ws.load(item));
             } else if (family.equals(WorkspaceFamily.UTIL_VAR)) {
-                applyVariables(context, item.getId(), (TsVariables) ws.load(item));
+                applyVariables(context, item.getLabel(), (TsVariables) ws.load(item));
             } else if (family.equals(WorkspaceFamily.SA_MULTI)) {
                 result.put(item, (SaProcessing) ws.load(item));
             }
