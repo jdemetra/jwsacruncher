@@ -5,7 +5,7 @@
     
     <groupId>eu.europa.ec.joinup.sat</groupId>
     <artifactId>jwsacruncher</artifactId>
-    <version>2.2.0-RC3</version>
+    <version>2.2.0-RC4</version>
     <packaging>jar</packaging>
     
     <name>jwsacruncher</name>
@@ -27,7 +27,7 @@
         <appassembler-maven-plugin.version>1.8</appassembler-maven-plugin.version>
         <maven-assembly-plugin>2.6</maven-assembly-plugin>
         <!-- dependencies -->
-        <demetra.version>2.2.0-RC3</demetra.version>
+        <demetra.version>2.2.0-RC4</demetra.version>
     </properties>
         
     <dependencyManagement>
