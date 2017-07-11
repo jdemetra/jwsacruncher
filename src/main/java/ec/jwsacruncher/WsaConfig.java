@@ -39,10 +39,10 @@ public class WsaConfig {
     public String Output;
     @XmlElementWrapper(name = "matrix")
     @XmlElement(name = "item")
-    public String[] Matrix = CsvMatrixOutputConfiguration.allDetails;
+    public String[] Matrix=new String[0];
     @XmlElementWrapper(name = "tsmatrix")
     @XmlElement(name = "series")
-    public String[] TSMatrix = CsvOutputConfiguration.allSeries;
+    public String[] TSMatrix=new String[0];
     @XmlElementWrapper(name = "paths")
     @XmlElement(name = "path")
     public String[] Paths;
