@@ -35,6 +35,8 @@ public class WsaConfig {
 
     @XmlElement(name = "policy")
     public String policy = "parameters";
+    @XmlElement(name = "refreshall")
+    public Boolean refresh = true;
     @XmlElement(name = "output")
     public String Output;
     @XmlElementWrapper(name = "matrix")
