@@ -39,6 +39,8 @@ import ec.tss.tsproviders.TsProviders;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.information.InformationMapping;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.timeseries.regression.TsVariables;
+import ec.tstoolkit.utilities.IDynamicObject;
 import ec.tstoolkit.utilities.Paths;
 import java.io.File;
 import java.io.IOException;
@@ -98,7 +100,9 @@ public final class App {
 
         applyFilePaths(getFilePaths(config));
         applyOutputConfig(config, ws.getRootFolder());
-
+        if (config.refresh) {
+            refreshVariables(context);
+        }
         for (Entry<WorkspaceItem, SaProcessing> o : sa.entrySet()) {
             process(ws, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize);
         }
@@ -190,9 +194,9 @@ public final class App {
         }
         return result;
     }
-    
+
     private static final String DIAGNOSTICS = "diagnostics";
-    
+
     private static void enableDiagnostics(String[] items) {
         // step 1. We retrieve the used diagnostics
         Set<String> diags = new HashSet<>();
@@ -211,5 +215,22 @@ public final class App {
         // step 2. Enable/disables diag
         SaManager.instance.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
-    
+
+    private static void refreshVariables(ProcessingContext context) {
+        Collection<TsVariables> variables = context.getTsVariableManagers().variables();
+        variables.forEach(
+                vars -> {
+                    vars.variables().forEach(
+                            var -> {
+                                if (var instanceof IDynamicObject) {
+                                    IDynamicObject dvar = (IDynamicObject) var;
+                                    dvar.refresh();
+                                }
+
+                            }
+                    );
+                }
+        );
+    }
+
 }
