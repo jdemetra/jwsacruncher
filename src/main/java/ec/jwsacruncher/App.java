@@ -17,6 +17,7 @@
 package ec.jwsacruncher;
 
 import com.google.common.base.Stopwatch;
+import ec.demetra.workspace.WorkspaceFamily;
 import ec.demetra.workspace.WorkspaceItem;
 import ec.demetra.workspace.file.FileWorkspace;
 import ec.jwsacruncher.core.FileRepository;
@@ -39,6 +40,9 @@ import ec.tss.tsproviders.TsProviders;
 import ec.tstoolkit.algorithm.ProcessingContext;
 import ec.tstoolkit.information.InformationMapping;
 import ec.tstoolkit.information.InformationSet;
+import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
+import ec.tstoolkit.timeseries.regression.ITsVariable;
+import ec.tstoolkit.timeseries.regression.TsVariable;
 import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.utilities.IDynamicObject;
 import ec.tstoolkit.utilities.Paths;
@@ -51,6 +55,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 /**
@@ -93,16 +98,18 @@ public final class App {
     }
 
     private static void process(FileWorkspace ws, ProcessingContext context, WsaConfig config) throws IOException {
+        Map<WorkspaceItem, GregorianCalendarManager> cal = FileRepository.loadAllCalendars(ws, context);
+        Map<WorkspaceItem, TsVariables> vars = FileRepository.loadAllVariables(ws, context);
         Map<WorkspaceItem, SaProcessing> sa = FileRepository.loadAllSaProcessing(ws, context);
+
+        applyFilePaths(getFilePaths(config));
+        if (config.refresh) {
+            refreshVariables(ws, vars);
+        }
         if (sa.isEmpty()) {
             return;
         }
-
-        applyFilePaths(getFilePaths(config));
         applyOutputConfig(config, ws.getRootFolder());
-        if (config.refresh) {
-            refreshVariables(context);
-        }
         for (Entry<WorkspaceItem, SaProcessing> o : sa.entrySet()) {
             process(ws, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize);
         }
@@ -216,20 +223,25 @@ public final class App {
         SaManager.instance.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
 
-    private static void refreshVariables(ProcessingContext context) {
-        Collection<TsVariables> variables = context.getTsVariableManagers().variables();
-        variables.forEach(
-                vars -> {
-                    vars.variables().forEach(
-                            var -> {
-                                if (var instanceof IDynamicObject) {
-                                    IDynamicObject dvar = (IDynamicObject) var;
-                                    dvar.refresh();
-                                }
-
-                            }
-                    );
+    private static void refreshVariables(FileWorkspace ws, Map<WorkspaceItem, TsVariables> vars) {
+        vars.forEach((item, v) -> {
+            boolean dirty = false;
+            Collection<ITsVariable> variables = v.variables();
+            for (ITsVariable var : variables) {
+                if (var instanceof IDynamicObject) {
+                    IDynamicObject dvar = (IDynamicObject) var;
+                    dvar.refresh();
+                    dirty = true;
                 }
+            }
+            if (dirty) {
+                try {
+                    ws.store(item, v);
+                } catch (IOException ex) {
+                    Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
         );
     }
 

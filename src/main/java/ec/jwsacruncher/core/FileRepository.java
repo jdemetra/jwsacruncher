@@ -49,12 +49,34 @@ public class FileRepository {
         Map<WorkspaceItem, SaProcessing> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
-            if (family.equals(WorkspaceFamily.UTIL_CAL)) {
-                applyCalendars(context, (GregorianCalendarManager) ws.load(item));
-            } else if (family.equals(WorkspaceFamily.UTIL_VAR)) {
-                applyVariables(context, item.getLabel(), (TsVariables) ws.load(item));
-            } else if (family.equals(WorkspaceFamily.SA_MULTI)) {
+            if (family.equals(WorkspaceFamily.SA_MULTI)) {
                 result.put(item, (SaProcessing) ws.load(item));
+            }
+        }
+        return result;
+    }
+
+    public Map<WorkspaceItem, GregorianCalendarManager> loadAllCalendars(FileWorkspace ws, ProcessingContext context) throws IOException {
+        Map<WorkspaceItem, GregorianCalendarManager> result = new LinkedHashMap<>();
+        for (WorkspaceItem item : ws.getItems()) {
+            WorkspaceFamily family = item.getFamily();
+            if (family.equals(WorkspaceFamily.UTIL_CAL)) {
+                GregorianCalendarManager calendar = (GregorianCalendarManager) ws.load(item);
+                result.put(item, calendar);
+                applyCalendars(context, calendar);
+            }
+        }
+        return result;
+    }
+
+    public Map<WorkspaceItem, TsVariables> loadAllVariables(FileWorkspace ws, ProcessingContext context) throws IOException {
+        Map<WorkspaceItem, TsVariables> result = new LinkedHashMap<>();
+        for (WorkspaceItem item : ws.getItems()) {
+            WorkspaceFamily family = item.getFamily();
+            if (family.equals(WorkspaceFamily.UTIL_VAR)) {
+                TsVariables vars = (TsVariables) ws.load(item);
+                result.put(item, vars);
+                applyVariables(context, item.getLabel(), vars);
             }
         }
         return result;
