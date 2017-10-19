@@ -27,6 +27,7 @@
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <appassembler-maven-plugin.version>1.8</appassembler-maven-plugin.version>
         <maven-assembly-plugin>2.6</maven-assembly-plugin>
+        <maven-source-plugin.version>2.4</maven-source-plugin.version>
         <!-- dependencies -->
         <demetra.version>2.2.1-SNAPSHOT</demetra.version>
     </properties>
