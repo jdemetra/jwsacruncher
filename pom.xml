@@ -187,7 +187,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly-plugin}</version>
                 <configuration>
-                    <finalName>jwsacruncher-${project.version}</finalName>
+                    <finalName>jwsacruncher-${project.version}-bin</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
                         <descriptor>src/assembly/app-assembly.xml</descriptor>
