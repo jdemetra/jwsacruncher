@@ -42,14 +42,16 @@ final class ArgsDecoder {
     public static Entry<File, WsaConfig> decodeArgs(String[] args) {
         WsaConfig config = new WsaConfig();
         if (args == null || args.length == 0) {
+            File paramFile = new File("wsacruncher.params");
             try {
                 loadAll();
                 // series
                 config.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(config.TSMatrix);
                 config.Matrix = BasicConfiguration.allSaDetails(true).toArray(config.Matrix);
-                writeConfig(new File("wsacruncher.params"), config);
+                writeConfig(paramFile, config);
             } catch (JAXBException e) {
-                System.err.println("Failed to create params file: " + e.getMessage());
+                System.err.println("Failed to write params file '" + paramFile.getAbsolutePath() + "'");
+                e.printStackTrace(System.err);
             }
             return Maps.immutableEntry(null, config);
         }
