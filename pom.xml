@@ -29,7 +29,7 @@
         <maven-assembly-plugin>2.6</maven-assembly-plugin>
         <maven-source-plugin.version>2.4</maven-source-plugin.version>
         <!-- dependencies -->
-        <demetra.version>2.2.2-SNAPSHOT</demetra.version>
+        <demetra.version>${project.version}</demetra.version>
     </properties>
         
     <dependencyManagement>
@@ -187,7 +187,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly-plugin}</version>
                 <configuration>
-                    <finalName>jwsacruncher-${project.version}</finalName>
+                    <finalName>jwsacruncher-${project.version}-bin</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
                         <descriptor>src/assembly/app-assembly.xml</descriptor>
