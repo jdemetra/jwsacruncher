@@ -16,107 +16,82 @@
  */
 package ec.jwsacruncher;
 
-import com.google.common.collect.Maps;
 import ec.tss.sa.EstimationPolicyType;
-import ec.tss.sa.ISaDiagnosticsFactory;
-import ec.tss.sa.ISaProcessingFactory;
-import ec.tss.sa.SaManager;
-import ec.tss.sa.output.BasicConfiguration;
-import ec.tstoolkit.information.InformationMapping;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Map.Entry;
-import java.util.ServiceLoader;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import javax.annotation.Nonnull;
 
 /**
  *
  * @author Philippe Charles
  */
+@lombok.experimental.UtilityClass
 final class ArgsDecoder {
 
-    public static Entry<File, WsaConfig> decodeArgs(String[] args) {
+    @Nonnull
+    static Args decode(@Nonnull String... args) throws IllegalArgumentException {
         WsaConfig config = new WsaConfig();
-        if (args == null || args.length == 0) {
-            File paramFile = new File("wsacruncher.params");
-            try {
-                loadAll();
-                // series
-                config.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(config.TSMatrix);
-                config.Matrix = BasicConfiguration.allSaDetails(true).toArray(config.Matrix);
-                writeConfig(paramFile, config);
-            } catch (JAXBException e) {
-                System.err.println("Failed to write params file '" + paramFile.getAbsolutePath() + "'");
-                e.printStackTrace(System.err);
-            }
-            return Maps.immutableEntry(null, config);
-        }
+        File workspace = null;
 
-        File file = null;
-        //
-        int cur = 0;
-        while (cur < args.length) {
-            String cmd = args[cur++];
+        int index = 0;
+        while (index < args.length) {
+            String cmd = args[index++];
             if (cmd.length() == 0) {
-                return null;
+                throw new IllegalArgumentException("Empty arg");
             }
             if (cmd.charAt(0) != '-') {
-                file = new File(cmd);
+                workspace = new File(cmd);
             } else {
                 switch (cmd) {
                     case "-x":
                     case "-X": {
-                        String str = getParamOrNull(args, cur++);
+                        String str = getParamOrNull(args, index++);
                         if (str == null) {
-                            return null;
+                            throw new IllegalArgumentException("Missing config path");
                         }
                         try {
-                            config = readConfig(new File(str));
-                        } catch (JAXBException e) {
-                            System.out.print("Invalid configuration file");
-                            return null;
+                            config = WsaConfig.read(new File(str));
+                        } catch (IOException e) {
+                            throw new IllegalArgumentException("Invalid config file", e);
                         }
                         break;
                     }
                     case "-d": {
-                        String str = getParamOrNull(args, cur++);
+                        String str = getParamOrNull(args, index++);
                         if (str == null) {
-                            return null;
+                            throw new IllegalArgumentException("Missing output arg");
                         }
                         config.Output = str;
                         break;
                     }
                     case "-m": {
-                        String str = getParamOrNull(args, cur++);
+                        String str = getParamOrNull(args, index++);
                         if (str == null) {
-                            return null;
+                            throw new IllegalArgumentException("Missing matrix path");
                         }
                         try {
                             config.Matrix = readMatrixConfig(new File(str));
                         } catch (Exception e) {
-                            return null;
+                            throw new IllegalArgumentException("Invalid matrix file", e);
                         }
                         break;
                     }
                     case "-p": {
-                        String str = getParamOrNull(args, cur++);
+                        String str = getParamOrNull(args, index++);
                         if (str == null) {
-                            return null;
+                            throw new IllegalArgumentException("Missing policy arg");
                         }
                         config.policy = str;
                         if (config.getPolicy() == EstimationPolicyType.None) {
-                            return null;
+                            throw new IllegalArgumentException("Invalid policy arg");
                         }
                         break;
                     }
                     case "-f": {
-                        String str = getParamOrNull(args, cur++);
+                        String str = getParamOrNull(args, index++);
                         if (str == null) {
-                            return null;
+                            throw new IllegalArgumentException("Missing layout arg");
                         }
                         config.layout = str;
                         break;
@@ -126,11 +101,16 @@ final class ArgsDecoder {
                         // Config.Diagnostics = true;
                         break;
                     default:
-                        return null;
+                        throw new IllegalArgumentException("Unknown arg");
                 }
             }
         }
-        return Maps.immutableEntry(file, config);
+
+        if (workspace == null) {
+            throw new IllegalArgumentException("Missing workspace path");
+        }
+
+        return Args.of(workspace, config);
     }
 
     private static String getParamOrNull(String[] args, int cur) {
@@ -144,33 +124,7 @@ final class ArgsDecoder {
         return str;
     }
 
-    private static WsaConfig readConfig(File file) throws JAXBException {
-        JAXBContext context = JAXBContext.newInstance(WsaConfig.class);
-        Unmarshaller unmarshaller = context.createUnmarshaller();
-        return (WsaConfig) unmarshaller.unmarshal(file);
-    }
-
-    private static void writeConfig(File file, WsaConfig config) throws JAXBException {
-        JAXBContext context = JAXBContext.newInstance(WsaConfig.class);
-        Marshaller marshaller = context.createMarshaller();
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(config, file);
-    }
-
     private static String[] readMatrixConfig(File file) throws IOException {
         return Files.readAllLines(file.toPath()).toArray(new String[0]);
-    }
-
-    private static void loadAll() {
-        // update the possible items
-        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
-        // load and enables all diagnostics
-        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
-                diag -> {
-                    diag.setEnabled(true);
-                    SaManager.instance.add(diag);
-                });
-        InformationMapping.updateAll(null);
-
     }
 }

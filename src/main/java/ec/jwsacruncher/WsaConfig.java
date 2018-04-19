@@ -17,10 +17,20 @@
 package ec.jwsacruncher;
 
 import ec.tss.sa.EstimationPolicyType;
+import ec.tss.sa.ISaDiagnosticsFactory;
+import ec.tss.sa.ISaProcessingFactory;
+import ec.tss.sa.SaManager;
 import ec.tss.sa.output.BasicConfiguration;
 import ec.tss.sa.output.CsvLayout;
-import ec.tss.sa.output.CsvMatrixOutputConfiguration;
-import ec.tss.sa.output.CsvOutputConfiguration;
+import ec.tstoolkit.information.InformationMapping;
+import ioutil.Jaxb;
+import java.io.File;
+import java.io.IOException;
+import java.util.ServiceLoader;
+import javax.annotation.Nonnull;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -41,10 +51,10 @@ public class WsaConfig {
     public String Output;
     @XmlElementWrapper(name = "matrix")
     @XmlElement(name = "item")
-    public String[] Matrix=new String[0];
+    public String[] Matrix = new String[0];
     @XmlElementWrapper(name = "tsmatrix")
     @XmlElement(name = "series")
-    public String[] TSMatrix=new String[0];
+    public String[] TSMatrix = new String[0];
     @XmlElementWrapper(name = "paths")
     @XmlElement(name = "path")
     public String[] Paths;
@@ -101,5 +111,48 @@ public class WsaConfig {
         } else {
             return CsvLayout.List;
         }
+    }
+
+    static WsaConfig read(File file) throws IOException {
+        return Jaxb.Parser.of(WsaConfig.class).parseFile(file);
+    }
+
+    static void write(File file, WsaConfig config) throws IOException {
+        try {
+            JAXBContext context = JAXBContext.newInstance(WsaConfig.class);
+            Marshaller marshaller = context.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            marshaller.marshal(config, file);
+        } catch (JAXBException ex) {
+            throw new IOException("Failed to write config file '" + file + "'", unwrap(ex));
+        }
+    }
+
+    private static Throwable unwrap(JAXBException ex) {
+        return ex.getMessage() == null || ex.getMessage().isEmpty() ? ex.getCause() : ex;
+    }
+
+    static final String DEFAULT_FILE_NAME = "wsacruncher.params";
+
+    @Nonnull
+    static WsaConfig generateDefault() {
+        WsaConfig result = new WsaConfig();
+        loadAll();
+        // series
+        result.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(result.TSMatrix);
+        result.Matrix = BasicConfiguration.allSaDetails(true).toArray(result.Matrix);
+        return result;
+    }
+
+    private static void loadAll() {
+        // update the possible items
+        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
+        // load and enables all diagnostics
+        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
+                diag -> {
+                    diag.setEnabled(true);
+                    SaManager.instance.add(diag);
+                });
+        InformationMapping.updateAll(null);
     }
 }
