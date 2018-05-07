@@ -94,14 +94,14 @@ public class FileRepository {
         manager.resetDirty();
     }
 
-    private void applyCalendars(ProcessingContext context, GregorianCalendarManager value) {
-        GregorianCalendarManager manager = context.getGregorianCalendars();
-        for (String s : value.getNames()) {
-            if (!manager.contains(s)) {
-                IGregorianCalendarProvider cal = value.get(s);
-                manager.set(s, cal);
+    private void applyCalendars(ProcessingContext context, GregorianCalendarManager source) {
+        GregorianCalendarManager target = context.getGregorianCalendars();
+        for (String s : source.getNames()) {
+            if (!target.contains(s)) {
+                IGregorianCalendarProvider cal = source.get(s).withCalendarManager(target);
+                target.set(s, cal);
             }
         }
-        manager.resetDirty();
+        target.resetDirty();
     }
 }
