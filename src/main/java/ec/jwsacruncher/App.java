@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import picocli.CommandLine;
 
 /**
  *
@@ -70,14 +71,23 @@ public final class App {
                 File userDir = new File(System.getProperty("user.dir"));
                 generateDefaultConfigFile(userDir);
             } else {
-                Args config = ArgsDecoder.decode(args);
-                process(config.getWorkspace(), config.getConfig());
+                Args config = ArgsDecoder2.decode(args);
+                if (config != null) {
+                    process(config.getWorkspace(), config.getConfig());
+                }
             }
         } catch (IOException | IllegalArgumentException ex) {
-            log.log(Level.SEVERE, null, ex);
-            System.err.println(ex.getMessage());
+            reportException(ex);
+            System.exit(-1);
+        } catch (CommandLine.ExecutionException ex) {
+            reportException(ex.getCause());
             System.exit(-1);
         }
+    }
+
+    private static void reportException(Throwable ex) {
+        log.log(Level.SEVERE, null, ex);
+        System.err.println(ex.getClass().getSimpleName() + ": " + ex.getMessage());
     }
 
     @VisibleForTesting
