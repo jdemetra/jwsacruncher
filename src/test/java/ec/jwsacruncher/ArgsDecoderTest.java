@@ -17,14 +17,16 @@
 package ec.jwsacruncher;
 
 import com.google.common.io.Files;
-import static ec.jwsacruncher.ArgsDecoder.decode;
+import static ec.jwsacruncher.ArgsDecoder2.decode;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import picocli.CommandLine;
 
 /**
  *
@@ -37,10 +39,7 @@ public class ArgsDecoderTest {
 
     @Test
     public void testNoArgs() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> decode())
-                .withMessage("Missing workspace path")
-                .withNoCause();
+        assertThat(decode()).isNull();
     }
 
     @Test
@@ -48,32 +47,23 @@ public class ArgsDecoderTest {
     public void testX() throws IOException {
         File userDir = temp.newFolder("X");
 
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> decode("-x"))
-                .withMessage("Missing config path")
-                .withNoCause();
-
         File configFile = new File(userDir, "config.xml");
 
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> decode("-x", configFile.getAbsolutePath()))
-                .withMessage("Invalid config file")
-                .withCauseInstanceOf(IOException.class);
+        assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .isInstanceOf(CommandLine.ExecutionException.class)
+                .hasCauseInstanceOf(FileNotFoundException.class);
 
         Files.write("some invalid content", configFile, StandardCharsets.UTF_8);
 
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> decode("-x", configFile.getAbsolutePath()))
-                .withMessage("Invalid config file")
-                .withCauseInstanceOf(IOException.class);
+        assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .isInstanceOf(CommandLine.ExecutionException.class)
+                .hasCauseInstanceOf(IOException.class)
+                .extracting(o -> o.getCause().getMessage())
+                .asString()
+                .startsWith("Failed to parse config file");
 
         WsaConfig config = new WsaConfig();
         WsaConfig.write(configFile, config);
-
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> decode("-x", configFile.getAbsolutePath()))
-                .withMessage("Missing workspace path")
-                .withNoCause();
 
         File workspace = new File(userDir, "workspace.xml");
 

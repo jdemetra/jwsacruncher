@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import picocli.CommandLine;
 
 /**
  *
@@ -67,14 +68,26 @@ public final class App {
     public static void main(String[] args) {
         try {
             if (args.length == 0) {
-                generateDefaultConfigFile(new File(System.getProperty("user.dir")));
+                File userDir = new File(System.getProperty("user.dir"));
+                generateDefaultConfigFile(userDir);
             } else {
-                process(args);
+                Args config = ArgsDecoder2.decode(args);
+                if (config != null) {
+                    process(config.getWorkspace(), config.getConfig());
+                }
             }
         } catch (IOException | IllegalArgumentException ex) {
-            log.log(Level.SEVERE, null, ex);
+            reportException(ex);
+            System.exit(-1);
+        } catch (CommandLine.ExecutionException ex) {
+            reportException(ex.getCause());
             System.exit(-1);
         }
+    }
+
+    private static void reportException(Throwable ex) {
+        log.log(Level.SEVERE, null, ex);
+        System.err.println(ex.getClass().getSimpleName() + ": " + ex.getMessage());
     }
 
     @VisibleForTesting
@@ -85,16 +98,14 @@ public final class App {
     }
 
     @VisibleForTesting
-    static void process(String[] args) throws IllegalArgumentException, IOException {
+    static void process(@Nonnull File workspace, @Nonnull WsaConfig config) throws IllegalArgumentException, IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        Args config = ArgsDecoder.decode(args);
-
         loadResources();
-        enableDiagnostics(config.getConfig().Matrix);
+        enableDiagnostics(config.Matrix);
 
-        try (FileWorkspace ws = FileWorkspace.open(config.getWorkspace().toPath())) {
-            process(ws, ProcessingContext.getActiveContext(), config.getConfig());
+        try (FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
+            process(ws, ProcessingContext.getActiveContext(), config);
         }
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
