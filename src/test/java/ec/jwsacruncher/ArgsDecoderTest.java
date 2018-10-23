@@ -18,6 +18,7 @@ package ec.jwsacruncher;
 
 import com.google.common.io.Files;
 import static ec.jwsacruncher.ArgsDecoder2.decode;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -57,10 +58,7 @@ public class ArgsDecoderTest {
 
         assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
                 .isInstanceOf(CommandLine.ExecutionException.class)
-                .hasCauseInstanceOf(IOException.class)
-                .extracting(o -> o.getCause().getMessage())
-                .asString()
-                .startsWith("Failed to parse config file");
+                .hasCauseInstanceOf(EOFException.class);
 
         WsaConfig config = new WsaConfig();
         WsaConfig.write(configFile, config);
