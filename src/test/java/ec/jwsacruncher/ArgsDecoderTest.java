@@ -20,9 +20,10 @@ import com.google.common.io.Files;
 import static ec.jwsacruncher.ArgsDecoder2.decode;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.NoSuchFileException;
 import static org.assertj.core.api.Assertions.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,17 +49,38 @@ public class ArgsDecoderTest {
     public void testX() throws IOException {
         File userDir = temp.newFolder("X");
 
+        assertThatThrownBy(() -> decode("workspace.xml", "-x", userDir.getAbsolutePath()))
+                .as("Not a file")
+                .isInstanceOf(CommandLine.ExecutionException.class)
+                .hasCauseInstanceOf(AccessDeniedException.class);
+
         File configFile = new File(userDir, "config.xml");
 
         assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .as("Missing file")
                 .isInstanceOf(CommandLine.ExecutionException.class)
-                .hasCauseInstanceOf(FileNotFoundException.class);
+                .hasCauseInstanceOf(NoSuchFileException.class);
 
-        Files.write("some invalid content", configFile, StandardCharsets.UTF_8);
+        write(configFile, "");
 
         assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .as("Empty file")
                 .isInstanceOf(CommandLine.ExecutionException.class)
                 .hasCauseInstanceOf(EOFException.class);
+
+        write(configFile, "<?xml version=\"1.0\" encoding=\"UTF-");
+
+        assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .as("Partial file")
+                .isInstanceOf(CommandLine.ExecutionException.class)
+                .hasCauseInstanceOf(IOException.class);
+
+        write(configFile, "some invalid content");
+
+        assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
+                .as("Invalid file")
+                .isInstanceOf(CommandLine.ExecutionException.class)
+                .hasCauseInstanceOf(IOException.class);
 
         WsaConfig config = new WsaConfig();
         WsaConfig.write(configFile, config);
@@ -71,5 +93,9 @@ public class ArgsDecoderTest {
                     assertThat(o.getWorkspace()).isEqualTo(workspace);
                     assertThat(o.getConfig()).isEqualToComparingFieldByField(config);
                 });
+    }
+
+    private static void write(File file, String content) throws IOException {
+        Files.write(content, file, StandardCharsets.UTF_8);
     }
 }
