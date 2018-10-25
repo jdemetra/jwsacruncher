@@ -26,7 +26,6 @@ import ec.tstoolkit.information.InformationMapping;
 import ioutil.Jaxb;
 import ioutil.Xml;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ServiceLoader;
 import javax.annotation.Nonnull;
@@ -116,9 +115,6 @@ public class WsaConfig {
     }
 
     static WsaConfig read(File file) throws IOException {
-        if (!file.exists()) {
-            throw new FileNotFoundException(file.toString());
-        }
         try {
             return Jaxb.Parser.of(WsaConfig.class).parseFile(file);
         } catch (Xml.WrappedException ex) {
