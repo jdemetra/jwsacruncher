@@ -17,7 +17,6 @@
 package ec.jwsacruncher;
 
 import com.google.common.base.Stopwatch;
-import ec.demetra.workspace.WorkspaceFamily;
 import ec.demetra.workspace.WorkspaceItem;
 import ec.demetra.workspace.file.FileWorkspace;
 import ec.jwsacruncher.core.FileRepository;
@@ -38,11 +37,11 @@ import ec.tss.sa.output.CsvOutputFactory;
 import ec.tss.tsproviders.IFileLoader;
 import ec.tss.tsproviders.TsProviders;
 import ec.tstoolkit.algorithm.ProcessingContext;
+import ec.tstoolkit.design.VisibleForTesting;
 import ec.tstoolkit.information.InformationMapping;
 import ec.tstoolkit.information.InformationSet;
 import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
 import ec.tstoolkit.timeseries.regression.ITsVariable;
-import ec.tstoolkit.timeseries.regression.TsVariable;
 import ec.tstoolkit.timeseries.regression.TsVariables;
 import ec.tstoolkit.utilities.IDynamicObject;
 import ec.tstoolkit.utilities.Paths;
@@ -55,8 +54,9 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import picocli.CommandLine;
 
 /**
  *
@@ -65,33 +65,47 @@ import java.util.stream.Stream;
 @lombok.extern.java.Log
 public final class App {
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
+        try {
+            if (args.length == 0) {
+                File userDir = new File(System.getProperty("user.dir"));
+                generateDefaultConfigFile(userDir);
+            } else {
+                Args config = ArgsDecoder2.decode(args);
+                if (config != null) {
+                    process(config.getWorkspace(), config.getConfig());
+                }
+            }
+        } catch (IOException | IllegalArgumentException ex) {
+            reportException(ex);
+            System.exit(-1);
+        } catch (CommandLine.ExecutionException ex) {
+            reportException(ex.getCause());
+            System.exit(-1);
+        }
+    }
+
+    private static void reportException(Throwable ex) {
+        log.log(Level.SEVERE, null, ex);
+        System.err.println(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+    }
+
+    @VisibleForTesting
+    static void generateDefaultConfigFile(@Nonnull File userDir) throws IOException {
+        WsaConfig config = WsaConfig.generateDefault();
+        File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
+        WsaConfig.write(configFile, config);
+    }
+
+    @VisibleForTesting
+    static void process(@Nonnull File workspace, @Nonnull WsaConfig config) throws IllegalArgumentException, IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        Entry<File, WsaConfig> config = ArgsDecoder.decodeArgs(args);
-        if (config == null) {
-            System.out.println("Wrong arguments");
-            return;
-        }
-
-        if (args == null || args.length == 0) {
-            return;
-        }
-
-        if (config.getValue() == null) {
-            return;
-        }
-
         loadResources();
-        enableDiagnostics(config.getValue().Matrix);
+        enableDiagnostics(config.Matrix);
 
-        try (FileWorkspace ws = FileWorkspace.open(config.getKey().toPath())) {
-            process(ws, ProcessingContext.getActiveContext(), config.getValue());
-        } catch (IOException ex) {
-            log.log(Level.SEVERE, null, ex);
+        try (FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
+            process(ws, ProcessingContext.getActiveContext(), config);
         }
 
         System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
@@ -238,7 +252,7 @@ public final class App {
                 try {
                     ws.store(item, v);
                 } catch (IOException ex) {
-                    Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+                    log.log(Level.SEVERE, null, ex);
                 }
             }
         }
