@@ -28,7 +28,7 @@ import ioutil.Xml;
 import java.io.File;
 import java.io.IOException;
 import java.util.ServiceLoader;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -139,7 +139,7 @@ public class WsaConfig {
 
     static final String DEFAULT_FILE_NAME = "wsacruncher.params";
 
-    @Nonnull
+    @NonNull
     static WsaConfig generateDefault() {
         WsaConfig result = new WsaConfig();
         loadAll();
