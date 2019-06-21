@@ -20,19 +20,8 @@
     </licenses>
     
     <properties>
-        <!-- build -->
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-        <maven-assembly-plugin>3.1.0</maven-assembly-plugin>
-        <appassembler-maven-plugin.version>2.0.0</appassembler-maven-plugin.version>
-
-        <!-- dependencies -->
-        <demetra.version>${project.version}</demetra.version>
-        <picocli.version>3.6.1</picocli.version>
-        <jansi.version>1.17.1</jansi.version>
+        <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
+        <project.x.binaries>${project.build.directory}/binaries</project.x.binaries>
     </properties>
         
     <dependencyManagement>
@@ -40,7 +29,7 @@
             <dependency>
                 <groupId>eu.europa.ec.joinup.sat</groupId>
                 <artifactId>demetra-parent</artifactId>
-                <version>${demetra.version}</version>
+                <version>${project.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -52,7 +41,6 @@
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker-qual</artifactId>
-            <version>2.8.2</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -60,6 +48,7 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        
         <!-- compile and runtime -->
         <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
@@ -72,13 +61,14 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>${picocli.version}</version>
+            <version>3.6.1</version>
         </dependency>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>${jansi.version}</version>
+            <version>1.17.1</version>
         </dependency>
+        
         <!-- runtime only -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -111,6 +101,7 @@
             <artifactId>demetra-common</artifactId>
             <scope>runtime</scope>
         </dependency>
+        
         <!-- test only -->
         <dependency>
             <groupId>junit</groupId>
@@ -125,34 +116,12 @@
     </dependencies>
         
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>${maven-source-plugin.version}</version>
-                    <executions>
-                        <execution>
-                            <phase>verify</phase>
-                            <goals>
-                                <goal>jar-no-fork</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>                
-            </plugins>
-        </pluginManagement>
         <plugins>
+            <!-- Generates a multi-platform executable bundle -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <!-- mvn appassembler:assemble -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>appassembler-maven-plugin</artifactId>
-                <version>${appassembler-maven-plugin.version}</version>
+                <version>2.0.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -165,14 +134,14 @@
                     <repositoryLayout>flat</repositoryLayout>
                     <repositoryName>lib</repositoryName>
                     <endorsedDir>lib/ext</endorsedDir>
-                    <assembleDirectory>${project.build.directory}/jwsacruncher-${project.version}</assembleDirectory>
+                    <assembleDirectory>${project.build.directory}/${project.build.finalName}</assembleDirectory>
                     <configurationDirectory>etc</configurationDirectory>
                     <copyConfigurationDirectory>true</copyConfigurationDirectory>
                     <extraJvmArguments>-Djava.util.logging.config.file=@BASEDIR@/etc/logging.properties</extraJvmArguments>
                     <programs>
                         <program>
-                            <mainClass>ec.jwsacruncher.App</mainClass>
-                            <id>jwsacruncher</id>
+                            <mainClass>${project.x.mainClass}</mainClass>
+                            <id>${project.name}</id>
                         </program>
                     </programs>
                 </configuration>
@@ -180,9 +149,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>${maven-assembly-plugin}</version>
+                <version>3.1.0</version>
                 <configuration>
-                    <finalName>jwsacruncher-${project.version}-bin</finalName>
+                    <finalName>${project.build.finalName}-bin</finalName>
+                    <outputDirectory>${project.x.binaries}</outputDirectory>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
                         <descriptor>src/assembly/app-assembly.xml</descriptor>
@@ -198,12 +168,81 @@
                     </execution>
                 </executions>
             </plugin>
+            
+            <!-- Generates SHA256 on binaries -->
+            <plugin>
+                <groupId>net.nicoulaj.maven.plugins</groupId>
+                <artifactId>checksum-maven-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>files</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <algorithms>
+                        <algorithm>SHA-256</algorithm>
+                    </algorithms>
+                    <fileSets>
+                        <fileSet>
+                            <directory>${project.x.binaries}</directory>
+                            <excludes>
+                                <exclude>*.sha256</exclude>
+                            </excludes>
+                        </fileSet>
+                    </fileSets>
+                    <csvSummary>false</csvSummary>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     
     <profiles>
-        <!-- Add missing Java EE Modules on JDK11 -->
+        <!-- Base build java8 -->
         <profile>
+            <id>base-java8</id>
+            <activation>
+                <property>
+                    <name>!skipBaseJava8</name>
+                </property>
+            </activation>
+            <properties>
+                <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+                <maven.compiler.target>1.8</maven.compiler.target>
+                <maven.compiler.source>1.8</maven.compiler.source>                
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.8.1</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.1.1</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Enforce Java8 API -->
+        <profile>
+            <id>enforce-java8-api</id>
+            <activation>
+                <jdk>11</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>8</maven.compiler.release>
+            </properties>
+        </profile>
+
+        <!-- Fix missing Java EE Modules in JDK11 -->
+        <profile>
+            <id>fix-missing-modules-jdk11</id>
             <activation>
                 <jdk>11</jdk>
             </activation>
@@ -242,7 +281,21 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.0.0-M1</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -261,7 +314,21 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.0.0-M1</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -269,13 +336,6 @@
     </profiles>
     
     <repositories>
-        <repository>
-            <id>netbeans-releases</id>
-            <url>http://bits.netbeans.org/nexus/content/groups/netbeans/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
         <repository>
             <id>oss-jfrog-artifactory-releases</id>
             <url>https://oss.jfrog.org/artifactory/oss-release-local</url>                    
@@ -286,13 +346,6 @@
         <repository>
             <id>oss-jfrog-artifactory-snapshots</id>
             <url>https://oss.jfrog.org/artifactory/oss-snapshot-local</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>projectlombok.org</id>
-            <url>https://projectlombok.org/edge-releases</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
