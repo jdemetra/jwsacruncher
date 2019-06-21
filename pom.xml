@@ -19,6 +19,11 @@
         </license>
     </licenses>
     
+    <properties>
+        <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
+        <project.x.binaries>${project.build.directory}/binaries</project.x.binaries>
+    </properties>
+        
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -112,8 +117,8 @@
         
     <build>
         <plugins>
+            <!-- Generates a multi-platform executable bundle -->
             <plugin>
-                <!-- mvn appassembler:assemble -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>appassembler-maven-plugin</artifactId>
                 <version>2.0.0</version>
@@ -135,7 +140,7 @@
                     <extraJvmArguments>-Djava.util.logging.config.file=@BASEDIR@/etc/logging.properties</extraJvmArguments>
                     <programs>
                         <program>
-                            <mainClass>ec.jwsacruncher.App</mainClass>
+                            <mainClass>${project.x.mainClass}</mainClass>
                             <id>${project.name}</id>
                         </program>
                     </programs>
@@ -147,6 +152,7 @@
                 <version>3.1.0</version>
                 <configuration>
                     <finalName>${project.build.finalName}-bin</finalName>
+                    <outputDirectory>${project.x.binaries}</outputDirectory>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
                         <descriptor>src/assembly/app-assembly.xml</descriptor>
@@ -161,6 +167,34 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            
+            <!-- Generates SHA256 on binaries -->
+            <plugin>
+                <groupId>net.nicoulaj.maven.plugins</groupId>
+                <artifactId>checksum-maven-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>files</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <algorithms>
+                        <algorithm>SHA-256</algorithm>
+                    </algorithms>
+                    <fileSets>
+                        <fileSet>
+                            <directory>${project.x.binaries}</directory>
+                            <excludes>
+                                <exclude>*.sha256</exclude>
+                            </excludes>
+                        </fileSet>
+                    </fileSets>
+                    <csvSummary>false</csvSummary>
+                </configuration>
             </plugin>
         </plugins>
     </build>
