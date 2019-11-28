@@ -61,19 +61,19 @@
         <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
-            <version>3.6.1</version>
+            <version>4.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.fusesource.jansi</groupId>
             <artifactId>jansi</artifactId>
-            <version>1.17.1</version>
+            <version>1.18</version>
         </dependency>
         
         <!-- runtime only -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
-            <version>1.7.22</version>
+            <version>1.7.29</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -223,7 +223,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jar-plugin</artifactId>
-                        <version>3.1.1</version>
+                        <version>3.2.0</version>
                     </plugin>
                 </plugins>
             </build>
@@ -238,6 +238,72 @@
             <properties>
                 <maven.compiler.release>8</maven.compiler.release>
             </properties>
+        </profile>
+
+        <!-- Enforce dependency rules -->
+        <profile>
+            <id>enforce-dependency-rules</id>
+            <activation>
+                <property>
+                    <name>!skipEnforceDependencyRules</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <version>3.0.0-M3</version>
+                        <executions>
+                            <execution>
+                                <id>enforce</id>
+                                <configuration>
+                                    <rules>
+                                        <requireMavenVersion>
+                                            <version>3.3.9</version>
+                                        </requireMavenVersion>
+                                        <DependencyConvergence/>
+                                    </rules>
+                                </configuration>
+                                <goals>
+                                    <goal>enforce</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Enforce modern API -->
+        <profile>
+            <id>enforce-modern-api</id>
+            <activation>
+                <property>
+                    <name>!skipEnforceModernAPI</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.gaul</groupId>
+                        <artifactId>modernizer-maven-plugin</artifactId>
+                        <version>2.0.0</version>
+                        <configuration>
+                            <javaVersion>1.8</javaVersion>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>modernizer</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>modernizer</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- Fix missing Java EE Modules in JDK11 -->
@@ -287,7 +353,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.0.1</version>
+                        <version>3.2.0</version>
                         <executions>
                             <execution>
                                 <phase>verify</phase>
@@ -320,7 +386,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.0.1</version>
+                        <version>3.2.0</version>
                         <executions>
                             <execution>
                                 <phase>verify</phase>
