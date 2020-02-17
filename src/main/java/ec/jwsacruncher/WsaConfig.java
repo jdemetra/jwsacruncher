@@ -23,8 +23,6 @@ import ec.tss.sa.SaManager;
 import ec.tss.sa.output.BasicConfiguration;
 import ec.tss.sa.output.CsvLayout;
 import ec.tstoolkit.information.InformationMapping;
-import ioutil.Jaxb;
-import ioutil.Xml;
 import java.io.File;
 import java.io.IOException;
 import java.util.ServiceLoader;
@@ -36,6 +34,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import nbbrd.io.WrappedIOException;
+import nbbrd.io.xml.bind.Jaxb;
 
 /**
  *
@@ -117,7 +117,7 @@ public class WsaConfig {
     static WsaConfig read(File file) throws IOException {
         try {
             return Jaxb.Parser.of(WsaConfig.class).parseFile(file);
-        } catch (Xml.WrappedException ex) {
+        } catch (WrappedIOException ex) {
             throw new IOException("Failed to parse config file '" + file + "'", ex.getCause());
         }
     }
