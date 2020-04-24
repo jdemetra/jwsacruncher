@@ -76,9 +76,12 @@ public class WsaConfig {
             return EstimationPolicyType.None;
         } else if (policy.equalsIgnoreCase("n")
                 || policy.equalsIgnoreCase("current")) {
-            return EstimationPolicyType.Fixed;
+            return EstimationPolicyType.Current;
         } else if (policy.equalsIgnoreCase("f")
-                || policy.equalsIgnoreCase("fixed") || policy.equalsIgnoreCase("fixedparameters")) {
+                || policy.equalsIgnoreCase("fixed")) {
+            return EstimationPolicyType.Fixed;
+        } else if (policy.equalsIgnoreCase("fp")
+                || policy.equalsIgnoreCase("fixedparameters")) {
             return EstimationPolicyType.FixedParameters;
         } else if (policy.equalsIgnoreCase("p")
                 || policy.equalsIgnoreCase("parameters")) {
