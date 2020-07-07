@@ -55,7 +55,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import picocli.CommandLine;
 
 /**
@@ -91,14 +91,14 @@ public final class App {
     }
 
     @VisibleForTesting
-    static void generateDefaultConfigFile(@Nonnull File userDir) throws IOException {
+    static void generateDefaultConfigFile(@NonNull File userDir) throws IOException {
         WsaConfig config = WsaConfig.generateDefault();
         File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
         WsaConfig.write(configFile, config);
     }
 
     @VisibleForTesting
-    static void process(@Nonnull File workspace, @Nonnull WsaConfig config) throws IllegalArgumentException, IOException {
+    static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         loadResources();

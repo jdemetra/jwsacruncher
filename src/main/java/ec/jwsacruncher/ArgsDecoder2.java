@@ -21,8 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.concurrent.Callable;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.fusesource.jansi.AnsiConsole;
 import picocli.CommandLine;
 
@@ -113,7 +113,7 @@ final class ArgsDecoder2 implements Callable<Args> {
     }
 
     @Nullable
-    public static Args decode(@Nonnull String... args) {
+    public static Args decode(@NonNull String... args) {
         AnsiConsole.systemInstall();
         try {
             return CommandLine.call(new ArgsDecoder2(), args);

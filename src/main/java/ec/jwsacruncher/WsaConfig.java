@@ -23,12 +23,10 @@ import ec.tss.sa.SaManager;
 import ec.tss.sa.output.BasicConfiguration;
 import ec.tss.sa.output.CsvLayout;
 import ec.tstoolkit.information.InformationMapping;
-import ioutil.Jaxb;
-import ioutil.Xml;
 import java.io.File;
 import java.io.IOException;
 import java.util.ServiceLoader;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -36,6 +34,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import nbbrd.io.WrappedIOException;
+import nbbrd.io.xml.bind.Jaxb;
 
 /**
  *
@@ -76,9 +76,12 @@ public class WsaConfig {
             return EstimationPolicyType.None;
         } else if (policy.equalsIgnoreCase("n")
                 || policy.equalsIgnoreCase("current")) {
-            return EstimationPolicyType.Fixed;
+            return EstimationPolicyType.Current;
         } else if (policy.equalsIgnoreCase("f")
-                || policy.equalsIgnoreCase("fixed") || policy.equalsIgnoreCase("fixedparameters")) {
+                || policy.equalsIgnoreCase("fixed")) {
+            return EstimationPolicyType.Fixed;
+        } else if (policy.equalsIgnoreCase("fp")
+                || policy.equalsIgnoreCase("fixedparameters")) {
             return EstimationPolicyType.FixedParameters;
         } else if (policy.equalsIgnoreCase("p")
                 || policy.equalsIgnoreCase("parameters")) {
@@ -117,7 +120,7 @@ public class WsaConfig {
     static WsaConfig read(File file) throws IOException {
         try {
             return Jaxb.Parser.of(WsaConfig.class).parseFile(file);
-        } catch (Xml.WrappedException ex) {
+        } catch (WrappedIOException ex) {
             throw new IOException("Failed to parse config file '" + file + "'", ex.getCause());
         }
     }
@@ -139,7 +142,7 @@ public class WsaConfig {
 
     static final String DEFAULT_FILE_NAME = "wsacruncher.params";
 
-    @Nonnull
+    @NonNull
     static WsaConfig generateDefault() {
         WsaConfig result = new WsaConfig();
         loadAll();

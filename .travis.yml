@@ -1,13 +1,19 @@
+dist: xenial
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk8
   - openjdk11
+  - openjdk-ea
+
+matrix:
+  allow_failures:
+    - jdk: openjdk-ea
 
 env:
   global:
-    - DEPLOY_JDK=oraclejdk8
+    - DEPLOY_JDK=openjdk8
     - DEPLOY_REPO=jdemetra/jwsacruncher
-    - DEPLOY_BIN=target/*bin.zip
+    - DEPLOY_BIN=target/binaries/*
 
 deploy:
   # Maven snapshots from develop branch
