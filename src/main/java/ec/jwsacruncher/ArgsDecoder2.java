@@ -23,8 +23,8 @@ import java.nio.file.Files;
 import java.util.concurrent.Callable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.fusesource.jansi.AnsiConsole;
 import picocli.CommandLine;
+import picocli.jansi.graalvm.AnsiConsole;
 
 /**
  *
@@ -114,11 +114,8 @@ final class ArgsDecoder2 implements Callable<Args> {
 
     @Nullable
     public static Args decode(@NonNull String... args) {
-        AnsiConsole.systemInstall();
-        try {
+        try (AnsiConsole ansi = AnsiConsole.windowsInstall()) {
             return CommandLine.call(new ArgsDecoder2(), args);
-        } finally {
-            AnsiConsole.systemUninstall();
         }
     }
 }

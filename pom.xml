@@ -64,9 +64,9 @@
             <version>4.5.2</version>
         </dependency>
         <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
-            <version>1.18</version>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli-jansi-graalvm</artifactId>
+            <version>1.2.0</version>
         </dependency>
         
         <!-- runtime only -->
