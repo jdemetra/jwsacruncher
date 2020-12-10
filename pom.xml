@@ -21,7 +21,7 @@
     
     <properties>
         <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
-        <project.x.binaries>${project.build.directory}/binaries</project.x.binaries>
+        <project.x.binaries>${project.basedir}/binaries</project.x.binaries>
     </properties>
         
     <dependencyManagement>
@@ -117,6 +117,19 @@
         
     <build>
         <plugins>
+            <!-- Clean binaries directory -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${project.x.binaries}</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+
             <!-- Generates a multi-platform executable bundle -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -176,6 +189,7 @@
                 <version>1.9</version>
                 <executions>
                     <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>files</goal>
                         </goals>
