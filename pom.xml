@@ -466,7 +466,7 @@
                                         <!-- Fix default value -->
                                         <branch>master</branch>
                                         <changelog>
-<!--                                            <external>${project.basedir}/../CHANGELOG.md</external>-->
+                                            <!--<external>${project.basedir}/../CHANGELOG.md</external>-->
                                         </changelog>
                                     </github>
                                 </release>
@@ -478,15 +478,19 @@
                                     <!-- Fix default value -->
                                     <armored>true</armored>
                                 </signing>
-                                <files>
-                                    <artifacts>
-                                        <artifact>
-                                            <path>
-                                                ${project.build.directory}/${project.build.finalName}-bin.zip
-                                            </path>
-                                        </artifact>
-                                    </artifacts>
-                                </files>
+                                <distributions>
+                                    <!-- Name is here ! -->
+                                    <jwsacruncher>
+                                        <type>JAVA_BINARY</type>
+                                        <artifacts>
+                                            <artifact>
+                                                <path>
+                                                    ${project.build.directory}/${project.build.finalName}-bin.zip
+                                                </path>
+                                            </artifact>
+                                        </artifacts>
+                                    </jwsacruncher>
+                                </distributions>
                             </jreleaser>
                         </configuration>
                     </plugin>
