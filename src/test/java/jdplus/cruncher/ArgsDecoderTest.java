@@ -14,15 +14,15 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import com.google.common.io.Files;
-import static ec.jwsacruncher.ArgsDecoder2.decode;
+import static jdplus.cruncher.ArgsDecoder2.decode;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import static org.assertj.core.api.Assertions.*;
 import org.junit.Rule;
@@ -96,6 +96,7 @@ public class ArgsDecoderTest {
     }
 
     private static void write(File file, String content) throws IOException {
-        Files.write(content, file, StandardCharsets.UTF_8);
+//        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+//        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 }

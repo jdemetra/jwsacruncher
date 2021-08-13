@@ -14,7 +14,7 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
 import java.io.File;
 

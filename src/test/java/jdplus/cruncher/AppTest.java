@@ -14,8 +14,10 @@
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
+import jdplus.cruncher.App;
+import jdplus.cruncher.WsaConfig;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;

@@ -14,11 +14,10 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import ec.tss.sa.SaItem;
-import ec.tstoolkit.algorithm.CompositeResults;
+import demetra.sa.SaEstimation;
+import demetra.sa.SaItem;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -91,10 +90,10 @@ public class SaBatchProcessor {
                 result.add(new Callable<String>() {
                     @Override
                     public String call() throws Exception {
-                        CompositeResults result = o.process();
+                        SaEstimation result = o.getEstimation();
                         String rslt = (result == null ? " failed" : " processed");
                         if (feedback_ != null) {
-                            feedback_.showItem(o.getTs().getName(), rslt);
+                            feedback_.showItem(o.getDefinition().getTs().getName(), rslt);
                         }
                         return rslt;
                     }
@@ -104,7 +103,7 @@ public class SaBatchProcessor {
         return result;
     }
     private static final int NBR_EXECUTORS = Runtime.getRuntime().availableProcessors();
-    private static final ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setPriority(Thread.MIN_PRIORITY).build();
+//    private static final ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setPriority(Thread.MIN_PRIORITY).build();
 
     private void compute(Collection<SaItem> items) {
 
@@ -112,7 +111,7 @@ public class SaBatchProcessor {
         if (tasks.isEmpty()) {
             return;
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(NBR_EXECUTORS, THREAD_FACTORY);
+        ExecutorService executorService = Executors.newFixedThreadPool(NBR_EXECUTORS);
         try {
             executorService.invokeAll(tasks);
         } catch (InterruptedException ex) {

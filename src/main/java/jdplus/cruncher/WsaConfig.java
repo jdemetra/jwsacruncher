@@ -14,18 +14,18 @@
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import ec.tss.sa.EstimationPolicyType;
-import ec.tss.sa.ISaDiagnosticsFactory;
-import ec.tss.sa.ISaProcessingFactory;
-import ec.tss.sa.SaManager;
-import ec.tss.sa.output.BasicConfiguration;
-import ec.tss.sa.output.CsvLayout;
-import ec.tstoolkit.information.InformationMapping;
+import demetra.information.formatters.BasicConfiguration;
+import demetra.sa.EstimationPolicyType;
+import demetra.sa.SaDiagnosticsFactory;
+import demetra.sa.SaManager;
+import demetra.sa.SaOutputFactory;
+import demetra.sa.SaProcessingFactory;
+import demetra.sa.csv.CsvLayout;
 import java.io.File;
 import java.io.IOException;
-import java.util.ServiceLoader;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -146,21 +146,28 @@ public class WsaConfig {
     static WsaConfig generateDefault() {
         WsaConfig result = new WsaConfig();
         loadAll();
-        // series
-        result.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(result.TSMatrix);
-        result.Matrix = BasicConfiguration.allSaDetails(true).toArray(result.Matrix);
+//        // series
+//        result.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(result.TSMatrix);
+//        result.Matrix = BasicConfiguration.allSaDetails(true).toArray(result.Matrix);
         return result;
     }
 
     private static void loadAll() {
-        // update the possible items
-        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
-        // load and enables all diagnostics
-        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
-                diag -> {
-                    diag.setEnabled(true);
-                    SaManager.instance.add(diag);
-                });
-        InformationMapping.updateAll(null);
+        List<SaProcessingFactory> processors = SaManager.processors();
+        for (SaProcessingFactory fac : processors){
+            List<SaDiagnosticsFactory<?>> diagnostics = fac.diagnostics();
+            int n=diagnostics.size();
+        }
+        List<SaOutputFactory> output = SaManager.outputFactories();
+        
+//        // update the possible items
+//        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
+//        // load and enables all diagnostics
+//        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
+//                diag -> {
+//                    diag.setEnabled(true);
+//                    SaManager.instance.add(diag);
+//                });
+//        InformationMapping.updateAll(null);
     }
 }

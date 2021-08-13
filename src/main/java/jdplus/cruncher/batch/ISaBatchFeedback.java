@@ -13,25 +13,16 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
- */
-package ec.jwsacruncher;
+*/
 
-import ec.jwsacruncher.batch.ISaBatchFeedback;
+
+package jdplus.cruncher.batch;
 
 /**
  *
  * @author Kristof Bayens
  */
-final class ConsoleFeedback implements ISaBatchFeedback {
-
-    @Override
-    public synchronized void showAction(String action) {
-        System.out.println(action);
-    }
-
-    @Override
-    public synchronized void showItem(String item, String msg) {
-        System.out.println(item);
-        System.out.println(msg);
-    }
+public interface ISaBatchFeedback {
+    void showAction(String action);
+    void showItem(String item, String msg);
 }

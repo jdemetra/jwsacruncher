@@ -16,7 +16,7 @@
 */
 
 
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
 import java.util.Iterator;
 

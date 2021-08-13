@@ -16,13 +16,16 @@
 */
 
 
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
+
+import demetra.sa.SaItem;
+import java.util.Collection;
 
 /**
  *
  * @author Kristof Bayens
  */
-public interface ISaBatchFeedback {
-    void showAction(String action);
-    void showItem(String item, String msg);
+public interface ISaBundle {
+    Collection<SaItem> getItems();
+    void flush(ISaBatchFeedback fb);
 }

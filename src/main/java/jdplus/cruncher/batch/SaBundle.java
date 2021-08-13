@@ -14,15 +14,9 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
-import ec.satoolkit.ISaSpecification;
-import ec.tss.sa.ISaOutputFactory;
-import ec.tss.sa.SaItem;
-import ec.tss.sa.SaManager;
-import ec.tss.sa.documents.SaDocument;
-import ec.tstoolkit.algorithm.IOutput;
-import ec.tstoolkit.utilities.LinearId;
+import demetra.sa.SaItem;
 import java.util.Collection;
 
 /**
@@ -46,27 +40,27 @@ public class SaBundle implements ISaBundle {
 
     @Override
     public void flush(ISaBatchFeedback fb) {
-        for (ISaOutputFactory fac : SaManager.instance.getOutput()) {
-            if (fac.isAvailable()) {
-                IOutput<SaDocument<ISaSpecification>> output = fac.create();
-                try {
-                    LinearId id = new LinearId(name_);
-                    output.start(id);
-                    for (SaItem item : items_) {
-                        output.process(item.toDocument());
-                    }
-                    output.end(id);
-                    if (fb != null)
-                        fb.showItem(output.getName(), "generated");
-                } catch (Exception err) {
-                    if (fb != null)
-                        fb.showItem(output.getName(), "failed: "+err.getMessage());
-                }
-            }
-        }
-        for (SaItem item : items_) {
-            item.compress();
-        }
+//        for (ISaOutputFactory fac : SaManager.instance.getOutput()) {
+//            if (fac.isAvailable()) {
+//                IOutput<SaDocument<ISaSpecification>> output = fac.create();
+//                try {
+//                    LinearId id = new LinearId(name_);
+//                    output.start(id);
+//                    for (SaItem item : items_) {
+//                        output.process(item.toDocument());
+//                    }
+//                    output.end(id);
+//                    if (fb != null)
+//                        fb.showItem(output.getName(), "generated");
+//                } catch (Exception err) {
+//                    if (fb != null)
+//                        fb.showItem(output.getName(), "failed: "+err.getMessage());
+//                }
+//            }
+//        }
+//        for (SaItem item : items_) {
+//            item.compress();
+//        }
         System.gc();
     }
 }

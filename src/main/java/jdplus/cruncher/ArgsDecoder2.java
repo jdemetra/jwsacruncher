@@ -14,9 +14,9 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import ec.tss.sa.EstimationPolicyType;
+import demetra.sa.EstimationPolicyType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

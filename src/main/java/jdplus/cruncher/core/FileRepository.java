@@ -14,18 +14,19 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.core;
+package jdplus.cruncher.core;
 
-import ec.demetra.workspace.WorkspaceFamily;
-import ec.demetra.workspace.WorkspaceItem;
-import ec.demetra.workspace.file.FileWorkspace;
-import ec.tss.sa.SaProcessing;
-import ec.tstoolkit.algorithm.ProcessingContext;
-import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
-import ec.tstoolkit.timeseries.calendars.IGregorianCalendarProvider;
-import ec.tstoolkit.timeseries.regression.TsVariables;
-import ec.tstoolkit.utilities.NameManager;
-import ec.tstoolkit.utilities.Paths;
+import demetra.sa.SaItems;
+import demetra.timeseries.calendars.CalendarDefinition;
+import demetra.timeseries.calendars.CalendarManager;
+import demetra.timeseries.regression.ModellingContext;
+import demetra.timeseries.regression.TsDataSuppliers;
+import demetra.timeseries.regression.TsVariables;
+import demetra.util.NameManager;
+import demetra.workspace.WorkspaceFamily;
+import demetra.workspace.WorkspaceItem;
+import demetra.workspace.file.FileWorkspace;
+import demetra.workspace.util.Paths;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,28 +41,28 @@ import java.util.Map;
 @lombok.experimental.UtilityClass
 public class FileRepository {
 
-    public void storeSaProcessing(FileWorkspace ws, WorkspaceItem item, SaProcessing processing) throws IOException {
+    public void storeSaProcessing(FileWorkspace ws, WorkspaceItem item, SaItems processing) throws IOException {
         makeSaProcessingBackup(ws, item);
         ws.store(item, processing);
     }
 
-    public Map<WorkspaceItem, SaProcessing> loadAllSaProcessing(FileWorkspace ws, ProcessingContext context) throws IOException {
-        Map<WorkspaceItem, SaProcessing> result = new LinkedHashMap<>();
+    public Map<WorkspaceItem, SaItems> loadAllSaProcessing(FileWorkspace ws, ModellingContext context) throws IOException {
+        Map<WorkspaceItem, SaItems> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
             if (family.equals(WorkspaceFamily.SA_MULTI)) {
-                result.put(item, (SaProcessing) ws.load(item));
+                result.put(item, (SaItems) ws.load(item));
             }
         }
         return result;
     }
 
-    public Map<WorkspaceItem, GregorianCalendarManager> loadAllCalendars(FileWorkspace ws, ProcessingContext context) throws IOException {
-        Map<WorkspaceItem, GregorianCalendarManager> result = new LinkedHashMap<>();
+    public Map<WorkspaceItem, CalendarManager> loadAllCalendars(FileWorkspace ws, ModellingContext context) throws IOException {
+        Map<WorkspaceItem, CalendarManager> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
             if (family.equals(WorkspaceFamily.UTIL_CAL)) {
-                GregorianCalendarManager calendar = (GregorianCalendarManager) ws.load(item);
+                CalendarManager calendar = (CalendarManager) ws.load(item);
                 result.put(item, calendar);
                 applyCalendars(context, calendar);
             }
@@ -69,12 +70,12 @@ public class FileRepository {
         return result;
     }
 
-    public Map<WorkspaceItem, TsVariables> loadAllVariables(FileWorkspace ws, ProcessingContext context) throws IOException {
-        Map<WorkspaceItem, TsVariables> result = new LinkedHashMap<>();
+    public Map<WorkspaceItem, TsDataSuppliers> loadAllVariables(FileWorkspace ws, ModellingContext context) throws IOException {
+        Map<WorkspaceItem, TsDataSuppliers> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
             if (family.equals(WorkspaceFamily.UTIL_VAR)) {
-                TsVariables vars = (TsVariables) ws.load(item);
+                TsDataSuppliers vars = (TsDataSuppliers) ws.load(item);
                 result.put(item, vars);
                 applyVariables(context, item.getLabel(), vars);
             }
@@ -88,17 +89,17 @@ public class FileRepository {
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void applyVariables(ProcessingContext context, String id, TsVariables value) {
-        NameManager<TsVariables> manager = context.getTsVariableManagers();
+    private void applyVariables(ModellingContext context, String id, TsDataSuppliers value) {
+        NameManager<TsDataSuppliers> manager = context.getTsVariableManagers();
         manager.set(id, value);
         manager.resetDirty();
     }
 
-    private void applyCalendars(ProcessingContext context, GregorianCalendarManager source) {
-        GregorianCalendarManager target = context.getGregorianCalendars();
+    private void applyCalendars(ModellingContext context, CalendarManager source) {
+        CalendarManager target = context.getCalendars();
         for (String s : source.getNames()) {
             if (!target.contains(s)) {
-                IGregorianCalendarProvider cal = source.get(s).withCalendarManager(target);
+                CalendarDefinition cal = source.get(s);
                 target.set(s, cal);
             }
         }

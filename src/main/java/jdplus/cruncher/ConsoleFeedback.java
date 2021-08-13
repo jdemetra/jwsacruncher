@@ -13,19 +13,25 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
-*/
+ */
+package jdplus.cruncher;
 
-
-package ec.jwsacruncher.batch;
-
-import ec.tss.sa.SaItem;
-import java.util.Collection;
+import jdplus.cruncher.batch.ISaBatchFeedback;
 
 /**
  *
  * @author Kristof Bayens
  */
-public interface ISaBundle {
-    Collection<SaItem> getItems();
-    void flush(ISaBatchFeedback fb);
+final class ConsoleFeedback implements ISaBatchFeedback {
+
+    @Override
+    public synchronized void showAction(String action) {
+        System.out.println(action);
+    }
+
+    @Override
+    public synchronized void showItem(String item, String msg) {
+        System.out.println(item);
+        System.out.println(msg);
+    }
 }

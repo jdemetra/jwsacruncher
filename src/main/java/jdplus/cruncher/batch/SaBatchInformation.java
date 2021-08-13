@@ -16,10 +16,9 @@
 */
 
 
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
-import ec.tss.TsInformationType;
-import ec.tss.sa.SaItem;
+import demetra.sa.SaItem;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -65,8 +64,6 @@ public class SaBatchInformation implements ISaBatchInformation {
 
     @Override
     public Iterator<ISaBundle> start() {
-        for (int i = 0; i< items_.length; ++i)
-            items_[i].getTs().query(TsInformationType.Data);
 
         if (bundlesize_ == 0)
             bundles_ = new ISaBundle[] { new SaBundle(name_, Arrays.asList(items_)) };
