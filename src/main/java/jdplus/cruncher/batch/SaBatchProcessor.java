@@ -16,8 +16,11 @@
  */
 package jdplus.cruncher.batch;
 
+import demetra.processing.Output;
 import demetra.sa.SaEstimation;
 import demetra.sa.SaItem;
+import demetra.sa.SaOutputFactory;
+import demetra.util.LinearId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -25,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  *
@@ -33,53 +35,48 @@ import java.util.concurrent.ThreadFactory;
  */
 public class SaBatchProcessor {
 
-    ISaBatchInformation info_;
-    ISaBatchFeedback feedback_;
+    private final SaBatchInformation info;
+    private final ISaBatchFeedback feedback;
+    private final List<SaOutputFactory> output;
 //    SaProcessing processing_;
     private final String QUERY = "Loading information...", PROCESS = "Processing...", FLUSH = "Flushing bundle...", OPEN = "Opening...", CLOSE = "Closing...", GENERATEOUTPUT = "Generate Output";
 
-    public SaBatchProcessor(ISaBatchInformation info, ISaBatchFeedback fb) {
-        info_ = info;
-        feedback_ = fb;
+    public SaBatchProcessor(SaBatchInformation info, List<SaOutputFactory> output, ISaBatchFeedback fb) {
+        this.info = info;
+        this.feedback = fb;
+        this.output = output;
     }
 
     public boolean open() {
-//        processing_ = new SaProcessing();
-        if (feedback_ != null) {
-            feedback_.showAction(OPEN);
+        if (feedback != null) {
+            feedback.showAction(OPEN);
         }
-        return info_.open();
+        return info.open();
     }
 
     public boolean process() {
         if (!open()) {
             return false;
         }
-//        if (!loadContext())
-//            return false;
 
-        Iterator<ISaBundle> iter = info_.start();
+        Iterator<SaBundle> iter = info.start();
         while (iter.hasNext()) {
-            ISaBundle current = iter.next();
+            SaBundle current = iter.next();
             Collection<SaItem> items = current.getItems();
-//            processing_.addAll(items);
             compute(items);
-            if (feedback_ != null) {
-                feedback_.showAction(FLUSH);
+            if (feedback != null) {
+                feedback.showAction(FLUSH);
             }
             generateOutput();
-            current.flush(feedback_);
-            //SaManager.instance.remove(items);
+            current.flush(output, feedback);
         }
-
-
-        info_.close();
+        info.close();
         return true;
     }
 
     public void generateOutput() {
-        if (feedback_ != null) {
-            feedback_.showAction(GENERATEOUTPUT);
+        if (feedback != null) {
+            feedback.showAction(GENERATEOUTPUT);
         }
     }
 
@@ -87,23 +84,20 @@ public class SaBatchProcessor {
         List<Callable<String>> result = new ArrayList(items.size());
         if (!items.isEmpty()) {
             for (final SaItem o : items) {
-                result.add(new Callable<String>() {
-                    @Override
-                    public String call() throws Exception {
-                        SaEstimation result = o.getEstimation();
-                        String rslt = (result == null ? " failed" : " processed");
-                        if (feedback_ != null) {
-                            feedback_.showItem(o.getDefinition().getTs().getName(), rslt);
-                        }
-                        return rslt;
+                result.add((Callable<String>) () -> {
+                    SaEstimation result1 = o.getEstimation();
+                    String rslt = result1 == null ? " failed" : " processed";
+                    if (feedback != null) {
+                        feedback.showItem(o.getDefinition().getTs().getName(), rslt);
                     }
+                    return rslt;
                 });
             }
         }
         return result;
     }
+
     private static final int NBR_EXECUTORS = Runtime.getRuntime().availableProcessors();
-//    private static final ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setPriority(Thread.MIN_PRIORITY).build();
 
     private void compute(Collection<SaItem> items) {
 

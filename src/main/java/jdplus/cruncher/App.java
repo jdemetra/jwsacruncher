@@ -18,22 +18,23 @@ package jdplus.cruncher;
 
 import demetra.information.InformationSet;
 import demetra.information.formatters.BasicConfiguration;
-import demetra.sa.EstimationPolicyType;
+import demetra.information.formatters.CsvInformationFormatter;
 import demetra.sa.SaItem;
 import demetra.sa.SaItems;
-import demetra.sa.SaManager;
+import demetra.sa.SaOutputFactory;
+import demetra.sa.csv.CsvMatrixOutputConfiguration;
+import demetra.sa.csv.CsvMatrixOutputFactory;
+import demetra.sa.csv.CsvOutputConfiguration;
+import demetra.sa.csv.CsvOutputFactory;
 import demetra.timeseries.DynamicTsDataSupplier;
 import demetra.timeseries.TsDataSupplier;
 import demetra.timeseries.TsFactory;
-import demetra.timeseries.TsProviderLoader;
-import demetra.timeseries.calendars.CalendarManager;
 import demetra.timeseries.regression.ModellingContext;
 import demetra.timeseries.regression.TsDataSuppliers;
 import demetra.tsprovider.FileLoader;
-import demetra.tsprovider.util.TsProviders;
 import demetra.workspace.WorkspaceItem;
 import demetra.workspace.file.FileWorkspace;
-import demetra.workspace.util.Paths;
+import demetra.util.Paths;
 import jdplus.cruncher.core.FileRepository;
 import jdplus.cruncher.batch.SaBatchProcessor;
 import jdplus.cruncher.batch.SaBatchInformation;
@@ -88,6 +89,13 @@ public final class App {
         File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
         WsaConfig.write(configFile, config);
     }
+    
+    private static List<SaOutputFactory> createOutputFactories(WsaConfig config){
+        List<SaOutputFactory> output = new ArrayList<>();
+        output.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
+        output.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
+        return output;
+    }
 
     static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
 
@@ -101,8 +109,8 @@ public final class App {
 
     private static void process(FileWorkspace ws, ModellingContext context, WsaConfig config) throws IOException {
         applyFilePaths(getFilePaths(config));
-        
-        Map<WorkspaceItem, CalendarManager> cal = FileRepository.loadAllCalendars(ws, context);
+
+        FileRepository.loadAllCalendars(ws, context);
         Map<WorkspaceItem, TsDataSuppliers> vars = FileRepository.loadAllVariables(ws, context);
         Map<WorkspaceItem, SaItems> sa = FileRepository.loadAllSaProcessing(ws, context);
 
@@ -112,21 +120,26 @@ public final class App {
         if (sa.isEmpty()) {
             return;
         }
-        applyOutputConfig(config, ws.getRootFolder());
-        for (Entry<WorkspaceItem, SaItems> o : sa.entrySet()) {
-            process(ws, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize);
-        }
-    }
+        int bundleSize = config.BundleSize == null ? 0 : config.BundleSize;
 
-    private static void process(FileWorkspace ws, WorkspaceItem item, SaItems processing, EstimationPolicyType policy, int bundleSize) throws IOException {
+        applyOutputConfig(config, ws.getRootFolder());
+        enableDiagnostics(config.Matrix);
+        
+        List<SaOutputFactory> output = createOutputFactories(config);
+        for (Entry<WorkspaceItem, SaItems> o : sa.entrySet()) {
+            process(ws, o.getKey(), o.getValue(), output, bundleSize);
+        }
+     }
+
+    private static void process(FileWorkspace ws, WorkspaceItem item, SaItems processing, List<SaOutputFactory> output, int bundleSize) throws IOException {
 
         System.out.println("Refreshing data");
         //       processing.refresh(policy, false);
         List<SaItem> items = processing.getItems();
-        SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
+         SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getId());
         info.setItems(processing.getItems());
-        SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
+        SaBatchProcessor processor = new SaBatchProcessor(info, output, new ConsoleFeedback());
         processor.process();
 
         System.out.println("Saving new processing...");
@@ -156,7 +169,7 @@ public final class App {
     }
 
     private static void applyFilePaths(File[] paths) {
-        TsFactory.getDefault().getProviders().filter(f->f instanceof FileLoader).forEach(o -> ((FileLoader)o).setPaths(paths));
+        TsFactory.getDefault().getProviders().filter(f -> f instanceof FileLoader).forEach(o -> ((FileLoader) o).setPaths(paths));
     }
 
     private static void applyOutputConfig(WsaConfig config, Path rootFolder) {
@@ -164,7 +177,7 @@ public final class App {
             BasicConfiguration.setDecimalNumber(config.ndecs);
         }
         if (config.csvsep != null && config.csvsep.length() == 1) {
-            BasicConfiguration.setCsvSeparator(config.csvsep.charAt(0));
+            CsvInformationFormatter.setCsvSeparator(config.csvsep.charAt(0));
         }
 
         if (config.Output == null) {
@@ -175,9 +188,6 @@ public final class App {
             output.mkdirs();
         }
 
-        // TODO: apply instead of add
-//        SaManager.instance.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
-//        SaManager.instance.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
     }
 
     private static File[] getFilePaths(WsaConfig config) {
@@ -186,22 +196,23 @@ public final class App {
                 : new File[0];
     }
 
-//    private static CsvOutputConfiguration getCsvOutputConfiguration(WsaConfig config) {
-//        CsvOutputConfiguration result = new CsvOutputConfiguration();
-//        result.setFolder(new File(config.Output));
-//        result.setPresentation(config.getLayout());
-//        result.setSeries(Arrays.asList(config.TSMatrix));
-//        return result;
-//    }
-//
-//    private static CsvMatrixOutputConfiguration getCsvMatrixOutputConfiguration(WsaConfig config) {
-//        CsvMatrixOutputConfiguration result = new CsvMatrixOutputConfiguration();
-//        result.setFolder(new File(config.Output));
-//        if (config.Matrix != null) {
-//            result.setItems(Arrays.asList(config.Matrix));
-//        }
-//        return result;
-//    }
+    private static CsvOutputConfiguration getCsvOutputConfiguration(WsaConfig config) {
+        CsvOutputConfiguration result = new CsvOutputConfiguration();
+        result.setFolder(new File(config.Output));
+        result.setPresentation(config.getLayout());
+        result.setSeries(Arrays.asList(config.TSMatrix));
+        return result;
+    }
+
+    private static CsvMatrixOutputConfiguration getCsvMatrixOutputConfiguration(WsaConfig config) {
+        CsvMatrixOutputConfiguration result = new CsvMatrixOutputConfiguration();
+        result.setFolder(new File(config.Output));
+        if (config.Matrix != null) {
+            result.setItems(Arrays.asList(config.Matrix));
+        }
+        return result;
+    }
+
     private static final String DIAGNOSTICS = "diagnostics";
 
     private static void enableDiagnostics(String[] items) {

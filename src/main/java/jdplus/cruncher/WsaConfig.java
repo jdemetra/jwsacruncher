@@ -16,16 +16,22 @@
  */
 package jdplus.cruncher;
 
-import demetra.information.formatters.BasicConfiguration;
+import demetra.information.InformationExtractors;
+import demetra.information.formatters.CsvInformationFormatter;
 import demetra.sa.EstimationPolicyType;
 import demetra.sa.SaDiagnosticsFactory;
 import demetra.sa.SaManager;
-import demetra.sa.SaOutputFactory;
 import demetra.sa.SaProcessingFactory;
 import demetra.sa.csv.CsvLayout;
+import demetra.timeseries.TsData;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -34,6 +40,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import jdplus.tramoseats.TramoSeatsResults;
+import jdplus.x13.X13Results;
 import nbbrd.io.WrappedIOException;
 import nbbrd.io.xml.bind.Jaxb;
 
@@ -64,9 +72,15 @@ public class WsaConfig {
     @XmlAttribute(name = "csvlayout")
     public String layout = "list";
     @XmlAttribute(name = "csvseparator")
-    public String csvsep = String.valueOf(BasicConfiguration.getCsvSeparator());
+    public String csvsep = String.valueOf(CsvInformationFormatter.getCsvSeparator());
     @XmlAttribute(name = "ndecs")
     public Integer ndecs = 6;
+    @XmlAttribute(name = "fullseriesname")
+    public Boolean fullSeriesName = true;
+    @XmlAttribute(name = "rsltnamelevel")
+    public Integer resultNameLevel = 2;
+    @XmlAttribute(name = "processingversion")
+    public Integer processingVersion = 3;
 
     public WsaConfig() {
     }
@@ -146,28 +160,34 @@ public class WsaConfig {
     static WsaConfig generateDefault() {
         WsaConfig result = new WsaConfig();
         loadAll();
-//        // series
-//        result.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(result.TSMatrix);
-//        result.Matrix = BasicConfiguration.allSaDetails(true).toArray(result.Matrix);
+        List<String> mlist = new ArrayList<>();
+        List<String> tlist = new ArrayList<>();
+        
+        Map<String, Class> dic = new LinkedHashMap<>();
+        // for TramoSeats
+        InformationExtractors.fillDictionary(TramoSeatsResults.class, null, dic, true);
+        // for X13
+        InformationExtractors.fillDictionary(X13Results.class, null, dic, true);
+        // series
+        Set<Type> types = CsvInformationFormatter.formattedTypes();
+        dic.entrySet().forEach(entry -> {
+            if (entry.getValue() == TsData.class){
+                tlist.add(entry.getKey());
+            }else if (types.contains(entry.getValue())){
+                mlist.add(entry.getKey());
+            }
+        });
+        result.TSMatrix=tlist.toArray(result.TSMatrix);
+        result.Matrix=mlist.toArray(result.Matrix);
         return result;
     }
 
     private static void loadAll() {
         List<SaProcessingFactory> processors = SaManager.processors();
-        for (SaProcessingFactory fac : processors){
+        for (SaProcessingFactory fac : processors) {
             List<SaDiagnosticsFactory<?>> diagnostics = fac.diagnostics();
-            int n=diagnostics.size();
+            diagnostics.forEach(diag -> diag.setEnabled(true));
+
         }
-        List<SaOutputFactory> output = SaManager.outputFactories();
-        
-//        // update the possible items
-//        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
-//        // load and enables all diagnostics
-//        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
-//                diag -> {
-//                    diag.setEnabled(true);
-//                    SaManager.instance.add(diag);
-//                });
-//        InformationMapping.updateAll(null);
     }
 }

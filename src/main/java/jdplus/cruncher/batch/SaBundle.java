@@ -16,51 +16,55 @@
  */
 package jdplus.cruncher.batch;
 
+import demetra.processing.Output;
 import demetra.sa.SaItem;
+import demetra.sa.SaOutputFactory;
+import demetra.util.LinearId;
 import java.util.Collection;
+import java.util.List;
 
 /**
  *
  * @author Kristof Bayens
  */
-public class SaBundle implements ISaBundle {
+public class SaBundle {
 
-    private String name_;
-    private Collection<SaItem> items_;
+    private final String name;
+    private final Collection<SaItem> items;
 
     public SaBundle(String name, Collection<SaItem> items) {
-        name_ = name;
-        items_ = items;
+        this.name = name;
+        this.items = items;
     }
 
-    @Override
     public Collection<SaItem> getItems() {
-        return items_;
+        return items;
     }
 
-    @Override
-    public void flush(ISaBatchFeedback fb) {
-//        for (ISaOutputFactory fac : SaManager.instance.getOutput()) {
-//            if (fac.isAvailable()) {
-//                IOutput<SaDocument<ISaSpecification>> output = fac.create();
-//                try {
-//                    LinearId id = new LinearId(name_);
-//                    output.start(id);
-//                    for (SaItem item : items_) {
-//                        output.process(item.toDocument());
-//                    }
-//                    output.end(id);
-//                    if (fb != null)
-//                        fb.showItem(output.getName(), "generated");
-//                } catch (Exception err) {
-//                    if (fb != null)
-//                        fb.showItem(output.getName(), "failed: "+err.getMessage());
-//                }
-//            }
-//        }
-//        for (SaItem item : items_) {
-//            item.compress();
-//        }
+    public void flush(List<SaOutputFactory> output, ISaBatchFeedback fb) {
+        for (SaOutputFactory fac : output) {
+            if (fac.isAvailable()) {
+                Output cur = fac.create();
+                try {
+                    LinearId id = new LinearId(name);
+                    cur.start(id);
+                    for (SaItem item : items) {
+                        cur.process(item.asDocument());
+                    }
+                    cur.end(id);
+                    if (fb != null) {
+                        fb.showItem(cur.getName(), "generated");
+                    }
+                } catch (Exception err) {
+                    if (fb != null) {
+                        fb.showItem(cur.getName(), "failed: " + err.getMessage());
+                    }
+                }
+            }
+        }
+        for (SaItem item : items) {
+            item.reset();
+        }
         System.gc();
     }
 }

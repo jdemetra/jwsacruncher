@@ -26,7 +26,7 @@ import demetra.util.NameManager;
 import demetra.workspace.WorkspaceFamily;
 import demetra.workspace.WorkspaceItem;
 import demetra.workspace.file.FileWorkspace;
-import demetra.workspace.util.Paths;
+import demetra.util.Paths;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
