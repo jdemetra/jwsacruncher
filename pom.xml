@@ -38,7 +38,7 @@
     </scm>
 
     <properties>
-        <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
+        <project.x.mainClass>jdplus.cruncher.App</project.x.mainClass>
         <project.x.fileName>${project.artifactId}</project.x.fileName>
         <project.x.binaries>${project.basedir}/binaries</project.x.binaries>
         <guava.version>30.1.1-jre</guava.version>
@@ -65,48 +65,13 @@
             </dependency>
             <dependency>
                 <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-toolkit-api</artifactId>
-                <version>${jd3-toolkit.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-toolkit-io</artifactId>
-                <version>${jd3-toolkit.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-sa-api</artifactId>
+                <artifactId>demetra-sa-csv</artifactId>
                 <version>${jd3-sa.version}</version>
             </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-sa-io</artifactId>
-                <version>${jd3-sa.version}</version>
-            </dependency>
-            <dependency>
+             <dependency>
                 <groupId>eu.europa.ec.joinup.sat</groupId>
                 <artifactId>demetra-workspace</artifactId>
                 <version>${demetra.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-tramoseats-api</artifactId>
-                <version>${jd3-tramoseats.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-tramoseats-io</artifactId>
-                <version>${jd3-tramoseats.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-x13-api</artifactId>
-                <version>${jd3-x13.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
-                <artifactId>demetra-x13-io</artifactId>
-                <version>${jd3-x13.version}</version>
             </dependency>
             <dependency>
                 <groupId>eu.europa.ec.joinup.sat</groupId>
@@ -146,39 +111,11 @@
         </dependency>
         <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-toolkit-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-toolkit-io</artifactId>
-         </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-sa-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-sa-io</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-workspace</artifactId>
         </dependency>
-        <dependency>
+       <dependency>
             <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-tramoseats-api</artifactId>
-         </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-tramoseats-io</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-x13-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
-            <artifactId>demetra-x13-io</artifactId>
+            <artifactId>demetra-sa-csv</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>
@@ -199,29 +136,27 @@
          <dependency>
             <groupId>com.github.nbbrd.java-service-util</groupId>
             <artifactId>java-service-processor</artifactId>
-            <version>1.4.0</version>
-            <type>jar</type>
+           <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-design-util</groupId>
             <artifactId>java-design-annotation</artifactId>
-            <version>1.1.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-base</artifactId>
-            <version>0.0.14</version>
+            <version>0.0.15</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-win</artifactId>
-            <version>0.0.14</version>
+            <version>0.0.15</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-xml</artifactId>
-            <version>0.0.14</version>
+            <version>0.0.15</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.netbeans.api</groupId>
@@ -315,7 +250,7 @@
                     <programs>
                         <program>
                             <mainClass>${project.x.mainClass}</mainClass>
-                            <id>${project.name}</id>
+                            <id>${project.artifactId}</id>
                         </program>
                     </programs>
                 </configuration>

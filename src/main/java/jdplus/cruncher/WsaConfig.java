@@ -24,6 +24,8 @@ import demetra.sa.SaManager;
 import demetra.sa.SaProcessingFactory;
 import demetra.sa.csv.CsvLayout;
 import demetra.timeseries.TsData;
+import demetra.tramoseats.TramoSeats;
+import demetra.x13.X13;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -40,8 +42,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import jdplus.tramoseats.TramoSeatsResults;
-import jdplus.x13.X13Results;
+//import jdplus.tramoseats.TramoSeatsResults;
+//import jdplus.x13.X13Results;
 import nbbrd.io.WrappedIOException;
 import nbbrd.io.xml.bind.Jaxb;
 
@@ -165,9 +167,11 @@ public class WsaConfig {
         
         Map<String, Class> dic = new LinkedHashMap<>();
         // for TramoSeats
-        InformationExtractors.fillDictionary(TramoSeatsResults.class, null, dic, true);
-        // for X13
-        InformationExtractors.fillDictionary(X13Results.class, null, dic, true);
+        Map<String, Class> tsDictionary = TramoSeats.outputDictionary(true);
+        dic.putAll(tsDictionary);
+//        // for X13
+        Map<String, Class> xDictionary = X13.outputDictionary(true);
+        dic.putAll(xDictionary);
         // series
         Set<Type> types = CsvInformationFormatter.formattedTypes();
         dic.entrySet().forEach(entry -> {
@@ -182,12 +186,16 @@ public class WsaConfig {
         return result;
     }
 
+    // use all diagnostics
     private static void loadAll() {
         List<SaProcessingFactory> processors = SaManager.processors();
-        for (SaProcessingFactory fac : processors) {
-            List<SaDiagnosticsFactory<?>> diagnostics = fac.diagnostics();
-            diagnostics.forEach(diag -> diag.setEnabled(true));
-
-        }
+        processors.forEach(fac -> {
+            List<SaDiagnosticsFactory> diagnostics = fac.diagnosticFactories();
+            List<SaDiagnosticsFactory> ndiagnostics=new ArrayList<>();
+            diagnostics.forEach(dfac -> {
+                ndiagnostics.add(dfac.activate(true));
+            });
+            fac.resetDiagnosticFactories(ndiagnostics);
+        });
     }
 }

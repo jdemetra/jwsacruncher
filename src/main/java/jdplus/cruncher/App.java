@@ -19,8 +19,10 @@ package jdplus.cruncher;
 import demetra.information.InformationSet;
 import demetra.information.formatters.BasicConfiguration;
 import demetra.information.formatters.CsvInformationFormatter;
+import demetra.sa.SaDiagnosticsFactory;
 import demetra.sa.SaItem;
 import demetra.sa.SaItems;
+import demetra.sa.SaManager;
 import demetra.sa.SaOutputFactory;
 import demetra.sa.csv.CsvMatrixOutputConfiguration;
 import demetra.sa.csv.CsvMatrixOutputFactory;
@@ -89,8 +91,8 @@ public final class App {
         File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
         WsaConfig.write(configFile, config);
     }
-    
-    private static List<SaOutputFactory> createOutputFactories(WsaConfig config){
+
+    private static List<SaOutputFactory> createOutputFactories(WsaConfig config) {
         List<SaOutputFactory> output = new ArrayList<>();
         output.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
         output.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
@@ -99,6 +101,7 @@ public final class App {
 
     static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
 
+        ModellingContext.setActiveContext(new ModellingContext());
         loadResources();
         enableDiagnostics(config.Matrix);
 
@@ -124,19 +127,19 @@ public final class App {
 
         applyOutputConfig(config, ws.getRootFolder());
         enableDiagnostics(config.Matrix);
-        
+
         List<SaOutputFactory> output = createOutputFactories(config);
         for (Entry<WorkspaceItem, SaItems> o : sa.entrySet()) {
             process(ws, o.getKey(), o.getValue(), output, bundleSize);
         }
-     }
+    }
 
     private static void process(FileWorkspace ws, WorkspaceItem item, SaItems processing, List<SaOutputFactory> output, int bundleSize) throws IOException {
 
         System.out.println("Refreshing data");
         //       processing.refresh(policy, false);
         List<SaItem> items = processing.getItems();
-         SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
+        SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getId());
         info.setItems(processing.getItems());
         SaBatchProcessor processor = new SaBatchProcessor(info, output, new ConsoleFeedback());
@@ -230,6 +233,18 @@ public final class App {
                 }
             }
         }
+        SaManager.processors().forEach(
+                processor -> {
+                    List<SaDiagnosticsFactory> facs = processor.diagnosticFactories();
+                    List<SaDiagnosticsFactory> nfacs = new ArrayList<>();
+                    facs.forEach(dfac -> {
+                        boolean active = dfac.isActive() || diags.contains(dfac.getName());
+                        nfacs.add(dfac.activate(active));
+                    });
+                    processor.resetDiagnosticFactories(nfacs);
+                }
+        );
+
         // step 2. Enable/disables diag
 //        SaManager.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
