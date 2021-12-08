@@ -17,16 +17,17 @@
 package jdplus.cruncher.core;
 
 import demetra.sa.SaItems;
+import demetra.sa.workspace.SaHandlers;
 import demetra.timeseries.calendars.CalendarDefinition;
 import demetra.timeseries.calendars.CalendarManager;
 import demetra.timeseries.regression.ModellingContext;
 import demetra.timeseries.regression.TsDataSuppliers;
-import demetra.timeseries.regression.TsVariables;
 import demetra.util.NameManager;
 import demetra.workspace.WorkspaceFamily;
 import demetra.workspace.WorkspaceItem;
 import demetra.workspace.file.FileWorkspace;
 import demetra.util.Paths;
+import internal.workspace.file.GenericHandlers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class FileRepository {
         Map<WorkspaceItem, SaItems> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
-            if (family.equals(WorkspaceFamily.SA_MULTI)) {
+            if (family.equals(SaHandlers.SA_MULTI)) {
                 result.put(item, (SaItems) ws.load(item));
             }
         }
@@ -61,7 +62,7 @@ public class FileRepository {
         Map<WorkspaceItem, CalendarManager> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
-            if (family.equals(WorkspaceFamily.UTIL_CAL)) {
+            if (family.equals(demetra.workspace.Workspace.UTIL_CAL)) {
                 CalendarManager calendar = (CalendarManager) ws.load(item);
                 result.put(item, calendar);
                 applyCalendars(context, calendar);
@@ -74,7 +75,7 @@ public class FileRepository {
         Map<WorkspaceItem, TsDataSuppliers> result = new LinkedHashMap<>();
         for (WorkspaceItem item : ws.getItems()) {
             WorkspaceFamily family = item.getFamily();
-            if (family.equals(WorkspaceFamily.UTIL_VAR)) {
+            if (family.equals(demetra.workspace.Workspace.UTIL_VAR)) {
                 TsDataSuppliers vars = (TsDataSuppliers) ws.load(item);
                 result.put(item, vars);
                 applyVariables(context, item.getLabel(), vars);
