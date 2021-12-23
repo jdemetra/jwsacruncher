@@ -28,15 +28,13 @@ import demetra.sa.csv.CsvMatrixOutputConfiguration;
 import demetra.sa.csv.CsvMatrixOutputFactory;
 import demetra.sa.csv.CsvOutputConfiguration;
 import demetra.sa.csv.CsvOutputFactory;
-import demetra.timeseries.DynamicTsDataSupplier;
-import demetra.timeseries.TsDataSupplier;
 import demetra.timeseries.TsFactory;
 import demetra.timeseries.regression.ModellingContext;
-import demetra.timeseries.regression.TsDataSuppliers;
 import demetra.tsprovider.FileLoader;
-import demetra.workspace.WorkspaceItem;
+import demetra.workspace.WorkspaceItemDescriptor;
 import demetra.workspace.file.FileWorkspace;
 import demetra.util.Paths;
+import demetra.workspace.WorkspaceUtility;
 import jdplus.cruncher.core.FileRepository;
 import jdplus.cruncher.batch.SaBatchProcessor;
 import jdplus.cruncher.batch.SaBatchInformation;
@@ -101,25 +99,21 @@ public final class App {
 
     static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
 
-        ModellingContext.setActiveContext(new ModellingContext());
-        loadResources();
-        enableDiagnostics(config.Matrix);
-
-        try (FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
-            process(ws, ModellingContext.getActiveContext(), config);
+        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
+            ModellingContext cxt=WorkspaceUtility.context(ws, config.refresh);
+            loadResources();
+            enableDiagnostics(config.Matrix);
+            process(ws, cxt, config);
         }
     }
 
     private static void process(FileWorkspace ws, ModellingContext context, WsaConfig config) throws IOException {
         applyFilePaths(getFilePaths(config));
 
-        FileRepository.loadAllCalendars(ws, context);
-        Map<WorkspaceItem, TsDataSuppliers> vars = FileRepository.loadAllVariables(ws, context);
-        Map<WorkspaceItem, SaItems> sa = FileRepository.loadAllSaProcessing(ws, context);
+//        FileRepository.loadAllCalendars(ws, context);
+//        Map<WorkspaceItemDescriptor, TsDataSuppliers> vars = FileRepository.loadAllVariables(ws, context);
+        Map<WorkspaceItemDescriptor, SaItems> sa = FileRepository.loadAllSaProcessing(ws, context);
 
-        if (config.refresh) {
-            refreshVariables(ws, vars);
-        }
         if (sa.isEmpty()) {
             return;
         }
@@ -129,20 +123,20 @@ public final class App {
         enableDiagnostics(config.Matrix);
 
         List<SaOutputFactory> output = createOutputFactories(config);
-        for (Entry<WorkspaceItem, SaItems> o : sa.entrySet()) {
-            process(ws, o.getKey(), o.getValue(), output, bundleSize);
+        for (Entry<WorkspaceItemDescriptor, SaItems> o : sa.entrySet()) {
+            process(ws, o.getKey(), o.getValue(), context, output, bundleSize);
         }
     }
 
-    private static void process(FileWorkspace ws, WorkspaceItem item, SaItems processing, List<SaOutputFactory> output, int bundleSize) throws IOException {
+    private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize) throws IOException {
 
         System.out.println("Refreshing data");
         //       processing.refresh(policy, false);
         List<SaItem> items = processing.getItems();
         SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
-        info.setName(item.getId());
+        info.setName(item.getKey().getId());
         info.setItems(processing.getItems());
-        SaBatchProcessor processor = new SaBatchProcessor(info, output, new ConsoleFeedback());
+        SaBatchProcessor processor = new SaBatchProcessor(info, context, output, new ConsoleFeedback());
         processor.process();
 
         System.out.println("Saving new processing...");
@@ -161,7 +155,7 @@ public final class App {
         String basedir = System.getProperty("basedir");
         if (basedir != null) {
             Path file = java.nio.file.Paths.get(basedir, "etc", "system.properties");
-            try (InputStream stream = Files.newInputStream(file)) {
+            try ( InputStream stream = Files.newInputStream(file)) {
                 Properties properties = new Properties();
                 properties.load(stream);
                 System.getProperties().putAll(properties);
@@ -249,26 +243,5 @@ public final class App {
 //        SaManager.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
 
-    private static void refreshVariables(FileWorkspace ws, Map<WorkspaceItem, TsDataSuppliers> vars) {
-        vars.forEach((item, v) -> {
-            boolean dirty = false;
-            Collection<TsDataSupplier> variables = v.variables();
-            for (TsDataSupplier var : variables) {
-                if (var instanceof DynamicTsDataSupplier) {
-                    DynamicTsDataSupplier dvar = (DynamicTsDataSupplier) var;
-                    dvar.refresh();
-                    dirty = true;
-                }
-            }
-            if (dirty) {
-                try {
-                    ws.store(item, v);
-                } catch (IOException ex) {
-                    log.log(Level.SEVERE, null, ex);
-                }
-            }
-        }
-        );
-    }
-
+ 
 }

@@ -16,11 +16,10 @@
  */
 package jdplus.cruncher.batch;
 
-import demetra.processing.Output;
 import demetra.sa.SaEstimation;
 import demetra.sa.SaItem;
 import demetra.sa.SaOutputFactory;
-import demetra.util.LinearId;
+import demetra.timeseries.regression.ModellingContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -31,20 +30,21 @@ import java.util.concurrent.Executors;
 
 /**
  *
- * @author Kristof Bayens
  */
 public class SaBatchProcessor {
 
     private final SaBatchInformation info;
     private final ISaBatchFeedback feedback;
     private final List<SaOutputFactory> output;
+    private final ModellingContext context;
 //    SaProcessing processing_;
     private final String QUERY = "Loading information...", PROCESS = "Processing...", FLUSH = "Flushing bundle...", OPEN = "Opening...", CLOSE = "Closing...", GENERATEOUTPUT = "Generate Output";
 
-    public SaBatchProcessor(SaBatchInformation info, List<SaOutputFactory> output, ISaBatchFeedback fb) {
+    public SaBatchProcessor(SaBatchInformation info, ModellingContext context, List<SaOutputFactory> output, ISaBatchFeedback fb) {
         this.info = info;
         this.feedback = fb;
         this.output = output;
+        this.context=context;
     }
 
     public boolean open() {
@@ -63,7 +63,7 @@ public class SaBatchProcessor {
         while (iter.hasNext()) {
             SaBundle current = iter.next();
             Collection<SaItem> items = current.getItems();
-            compute(items);
+            compute(items, context);
             if (feedback != null) {
                 feedback.showAction(FLUSH);
             }
@@ -80,11 +80,13 @@ public class SaBatchProcessor {
         }
     }
 
-    private List<Callable<String>> createTasks(Collection<SaItem> items) {
+    private List<Callable<String>> createTasks(Collection<SaItem> items, ModellingContext context) {
         List<Callable<String>> result = new ArrayList(items.size());
         if (!items.isEmpty()) {
             for (final SaItem o : items) {
                 result.add((Callable<String>) () -> {
+                    if (! o.isProcessed())
+                        o.process(context, false);
                     SaEstimation result1 = o.getEstimation();
                     String rslt = result1 == null ? " failed" : " processed";
                     if (feedback != null) {
@@ -99,9 +101,9 @@ public class SaBatchProcessor {
 
     private static final int NBR_EXECUTORS = Runtime.getRuntime().availableProcessors();
 
-    private void compute(Collection<SaItem> items) {
+    private void compute(Collection<SaItem> items, ModellingContext context) {
 
-        List<Callable<String>> tasks = createTasks(items);
+        List<Callable<String>> tasks = createTasks(items, context);
         if (tasks.isEmpty()) {
             return;
         }

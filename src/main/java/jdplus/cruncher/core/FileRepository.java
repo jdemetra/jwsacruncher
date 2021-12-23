@@ -24,7 +24,7 @@ import demetra.timeseries.regression.ModellingContext;
 import demetra.timeseries.regression.TsDataSuppliers;
 import demetra.util.NameManager;
 import demetra.workspace.WorkspaceFamily;
-import demetra.workspace.WorkspaceItem;
+import demetra.workspace.WorkspaceItemDescriptor;
 import demetra.workspace.file.FileWorkspace;
 import demetra.util.Paths;
 import internal.workspace.file.GenericHandlers;
@@ -42,68 +42,68 @@ import java.util.Map;
 @lombok.experimental.UtilityClass
 public class FileRepository {
 
-    public void storeSaProcessing(FileWorkspace ws, WorkspaceItem item, SaItems processing) throws IOException {
+    public void storeSaProcessing(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing) throws IOException {
         makeSaProcessingBackup(ws, item);
         ws.store(item, processing);
     }
 
-    public Map<WorkspaceItem, SaItems> loadAllSaProcessing(FileWorkspace ws, ModellingContext context) throws IOException {
-        Map<WorkspaceItem, SaItems> result = new LinkedHashMap<>();
-        for (WorkspaceItem item : ws.getItems()) {
-            WorkspaceFamily family = item.getFamily();
+    public Map<WorkspaceItemDescriptor, SaItems> loadAllSaProcessing(FileWorkspace ws, ModellingContext context) throws IOException {
+        Map<WorkspaceItemDescriptor, SaItems> result = new LinkedHashMap<>();
+        for (WorkspaceItemDescriptor item : ws.getItems()) {
+            WorkspaceFamily family = item.getKey().getFamily();
             if (family.equals(SaHandlers.SA_MULTI)) {
-                result.put(item, (SaItems) ws.load(item));
+                result.put(item, (SaItems) ws.load(item.getKey()));
             }
         }
         return result;
     }
 
-    public Map<WorkspaceItem, CalendarManager> loadAllCalendars(FileWorkspace ws, ModellingContext context) throws IOException {
-        Map<WorkspaceItem, CalendarManager> result = new LinkedHashMap<>();
-        for (WorkspaceItem item : ws.getItems()) {
-            WorkspaceFamily family = item.getFamily();
-            if (family.equals(demetra.workspace.Workspace.UTIL_CAL)) {
-                CalendarManager calendar = (CalendarManager) ws.load(item);
-                result.put(item, calendar);
-                applyCalendars(context, calendar);
-            }
-        }
-        return result;
-    }
-
-    public Map<WorkspaceItem, TsDataSuppliers> loadAllVariables(FileWorkspace ws, ModellingContext context) throws IOException {
-        Map<WorkspaceItem, TsDataSuppliers> result = new LinkedHashMap<>();
-        for (WorkspaceItem item : ws.getItems()) {
-            WorkspaceFamily family = item.getFamily();
-            if (family.equals(demetra.workspace.Workspace.UTIL_VAR)) {
-                TsDataSuppliers vars = (TsDataSuppliers) ws.load(item);
-                result.put(item, vars);
-                applyVariables(context, item.getLabel(), vars);
-            }
-        }
-        return result;
-    }
-
-    private void makeSaProcessingBackup(FileWorkspace ws, WorkspaceItem item) throws IOException {
+    private void makeSaProcessingBackup(FileWorkspace ws, WorkspaceItemDescriptor item) throws IOException {
         Path source = ws.getFile(item);
         Path target = source.getParent().resolve(Paths.changeExtension(source.getFileName().toString(), "bak"));
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void applyVariables(ModellingContext context, String id, TsDataSuppliers value) {
-        NameManager<TsDataSuppliers> manager = context.getTsVariableManagers();
-        manager.set(id, value);
-        manager.resetDirty();
-    }
-
-    private void applyCalendars(ModellingContext context, CalendarManager source) {
-        CalendarManager target = context.getCalendars();
-        for (String s : source.getNames()) {
-            if (!target.contains(s)) {
-                CalendarDefinition cal = source.get(s);
-                target.set(s, cal);
-            }
-        }
-        target.resetDirty();
-    }
+//    public Map<WorkspaceItemDescriptor, CalendarManager> loadAllCalendars(FileWorkspace ws, ModellingContext context) throws IOException {
+//        Map<WorkspaceItemDescriptor, CalendarManager> result = new LinkedHashMap<>();
+//        for (WorkspaceItemDescriptor item : ws.getItems()) {
+//            WorkspaceFamily family = item.getKey().getFamily();
+//            if (family.equals(demetra.workspace.WorkspaceFamily.UTIL_CAL)) {
+//                CalendarManager calendar = (CalendarManager) ws.load(item.getKey());
+//                result.put(item, calendar);
+//                applyCalendars(context, calendar);
+//            }
+//        }
+//        return result;
+//    }
+//
+//    public Map<WorkspaceItemDescriptor, TsDataSuppliers> loadAllVariables(FileWorkspace ws, ModellingContext context) throws IOException {
+//        Map<WorkspaceItemDescriptor, TsDataSuppliers> result = new LinkedHashMap<>();
+//        for (WorkspaceItemDescriptor item : ws.getItems()) {
+//            WorkspaceFamily family = item.getKey().getFamily();
+//            if (family.equals(demetra.workspace.WorkspaceFamily.UTIL_VAR)) {
+//                TsDataSuppliers vars = (TsDataSuppliers) ws.load(item.getKey());
+//                result.put(item, vars);
+//                applyVariables(context, item.getAttributes().getLabel(), vars);
+//            }
+//        }
+//        return result;
+//    }
+//
+//    private void applyVariables(ModellingContext context, String id, TsDataSuppliers value) {
+//        NameManager<TsDataSuppliers> manager = context.getTsVariableManagers();
+//        manager.set(id, value);
+//        manager.resetDirty();
+//    }
+//
+//    private void applyCalendars(ModellingContext context, CalendarManager source) {
+//        CalendarManager target = context.getCalendars();
+//        for (String s : source.getNames()) {
+//            if (!target.contains(s)) {
+//                CalendarDefinition cal = source.get(s);
+//                target.set(s, cal);
+//            }
+//        }
+//        target.resetDirty();
+//    }
 }
