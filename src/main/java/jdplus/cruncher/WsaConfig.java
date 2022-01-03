@@ -16,7 +16,6 @@
  */
 package jdplus.cruncher;
 
-import demetra.information.InformationExtractors;
 import demetra.information.formatters.CsvInformationFormatter;
 import demetra.sa.EstimationPolicyType;
 import demetra.sa.SaDiagnosticsFactory;
@@ -34,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -42,10 +40,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-//import jdplus.tramoseats.TramoSeatsResults;
-//import jdplus.x13.X13Results;
 import nbbrd.io.WrappedIOException;
 import nbbrd.io.xml.bind.Jaxb;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  *
@@ -81,8 +78,8 @@ public class WsaConfig {
     public Boolean fullSeriesName = true;
     @XmlAttribute(name = "rsltnamelevel")
     public Integer resultNameLevel = 2;
-    @XmlAttribute(name = "processingversion")
-    public Integer processingVersion = 3;
+    @XmlAttribute(name = "format")
+    public String format = "JD3";
 
     public WsaConfig() {
     }

@@ -63,7 +63,7 @@ public class SaBundle {
             }
         }
         for (SaItem item : items) {
-            item.reset();
+            item.flush();
         }
         System.gc();
     }

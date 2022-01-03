@@ -16,6 +16,7 @@
  */
 package jdplus.cruncher;
 
+import demetra.DemetraVersion;
 import demetra.information.InformationSet;
 import demetra.information.formatters.BasicConfiguration;
 import demetra.information.formatters.CsvInformationFormatter;
@@ -31,13 +32,10 @@ import demetra.sa.csv.CsvOutputFactory;
 import demetra.timeseries.TsFactory;
 import demetra.timeseries.regression.ModellingContext;
 import demetra.tsprovider.FileLoader;
-import demetra.workspace.WorkspaceItemDescriptor;
-import demetra.workspace.file.FileWorkspace;
 import demetra.util.Paths;
+import demetra.workspace.WorkspaceItemDescriptor;
 import demetra.workspace.WorkspaceUtility;
-import jdplus.cruncher.core.FileRepository;
-import jdplus.cruncher.batch.SaBatchProcessor;
-import jdplus.cruncher.batch.SaBatchInformation;
+import demetra.workspace.file.FileWorkspace;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +45,9 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.stream.Stream;
+import jdplus.cruncher.batch.SaBatchInformation;
+import jdplus.cruncher.batch.SaBatchProcessor;
+import jdplus.cruncher.core.FileRepository;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import picocli.CommandLine;
 
@@ -98,8 +99,9 @@ public final class App {
     }
 
     static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
-
-        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
+        
+        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath(), 
+                config.format.equalsIgnoreCase("JD2") ? DemetraVersion.JD2 : DemetraVersion.JD3 )) {
             ModellingContext cxt=WorkspaceUtility.context(ws, config.refresh);
             loadResources();
             enableDiagnostics(config.Matrix);
