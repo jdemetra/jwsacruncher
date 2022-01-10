@@ -20,6 +20,7 @@ import demetra.DemetraVersion;
 import demetra.information.InformationSet;
 import demetra.information.formatters.BasicConfiguration;
 import demetra.information.formatters.CsvInformationFormatter;
+import demetra.sa.EstimationPolicy;
 import demetra.sa.SaDiagnosticsFactory;
 import demetra.sa.SaItem;
 import demetra.sa.SaItems;
@@ -44,6 +45,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jdplus.cruncher.batch.SaBatchInformation;
 import jdplus.cruncher.batch.SaBatchProcessor;
@@ -123,21 +125,21 @@ public final class App {
 
         applyOutputConfig(config, ws.getRootFolder());
         enableDiagnostics(config.Matrix);
+        EstimationPolicy policy=new EstimationPolicy(config.getPolicy(), null, null);
 
         List<SaOutputFactory> output = createOutputFactories(config);
         for (Entry<WorkspaceItemDescriptor, SaItems> o : sa.entrySet()) {
-            process(ws, o.getKey(), o.getValue(), context, output, bundleSize);
+            process(ws, o.getKey(), o.getValue(), context, output, bundleSize, policy);
         }
     }
 
-    private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize) throws IOException {
+    private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize, EstimationPolicy policy) throws IOException {
 
         System.out.println("Refreshing data");
-        //       processing.refresh(policy, false);
-        List<SaItem> items = processing.getItems();
-        SaBatchInformation info = new SaBatchInformation(items.size() > bundleSize ? bundleSize : 0);
+        List<SaItem> all = processing.getItems().stream().map(cur->cur.refresh(policy)).collect(Collectors.toList());
+        SaBatchInformation info = new SaBatchInformation(all.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getKey().getId());
-        info.setItems(processing.getItems());
+        info.setItems(all);
         SaBatchProcessor processor = new SaBatchProcessor(info, context, output, new ConsoleFeedback());
         processor.process();
 
