@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Setup Java
         uses: actions/setup-java@v1
@@ -58,6 +59,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Setup Java
         uses: actions/setup-java@v1
@@ -103,6 +105,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Setup Java
         uses: actions/setup-java@v1
