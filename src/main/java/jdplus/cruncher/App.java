@@ -31,6 +31,7 @@ import demetra.sa.csv.CsvMatrixOutputFactory;
 import demetra.sa.csv.CsvOutputConfiguration;
 import demetra.sa.csv.CsvOutputFactory;
 import demetra.timeseries.TsFactory;
+import demetra.timeseries.TsInformationType;
 import demetra.timeseries.regression.ModellingContext;
 import demetra.tsprovider.FileLoader;
 import demetra.util.Paths;
@@ -101,10 +102,10 @@ public final class App {
     }
 
     static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
-        
-        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath(), 
-                config.format.equalsIgnoreCase("JD2") ? DemetraVersion.JD2 : DemetraVersion.JD3 )) {
-            ModellingContext cxt=WorkspaceUtility.context(ws, config.refresh);
+
+        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath(),
+                config.format.equalsIgnoreCase("JD2") ? DemetraVersion.JD2 : DemetraVersion.JD3)) {
+            ModellingContext cxt = WorkspaceUtility.context(ws, config.refresh);
             loadResources();
             enableDiagnostics(config.Matrix);
             process(ws, cxt, config);
@@ -125,7 +126,7 @@ public final class App {
 
         applyOutputConfig(config, ws.getRootFolder());
         enableDiagnostics(config.Matrix);
-        EstimationPolicy policy=new EstimationPolicy(config.getPolicy(), null, null);
+        EstimationPolicy policy = new EstimationPolicy(config.getPolicy(), null);
 
         List<SaOutputFactory> output = createOutputFactories(config);
         for (Entry<WorkspaceItemDescriptor, SaItems> o : sa.entrySet()) {
@@ -136,7 +137,7 @@ public final class App {
     private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize, EstimationPolicy policy) throws IOException {
 
         System.out.println("Refreshing data");
-        List<SaItem> all = processing.getItems().stream().map(cur->cur.refresh(policy)).collect(Collectors.toList());
+        List<SaItem> all = processing.getItems().stream().map(cur -> cur.refresh(policy, TsInformationType.Data)).collect(Collectors.toList());
         SaBatchInformation info = new SaBatchInformation(all.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getKey().getId());
         info.setItems(all);
@@ -247,5 +248,4 @@ public final class App {
 //        SaManager.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
 
- 
 }
