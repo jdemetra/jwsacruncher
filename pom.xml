@@ -51,7 +51,7 @@
         <jd3-tramoseats.version>1.0.0-SNAPSHOT</jd3-tramoseats.version>
         <jd3-x13.version>1.0.0-SNAPSHOT</jd3-x13.version>
         <jd3-workspace.version>3.0.0-SNAPSHOT</jd3-workspace.version>
-        <slf4j.version>1.7.32</slf4j.version>
+        <slf4j.version>1.7.33</slf4j.version>
     </properties>
 
     
@@ -195,17 +195,17 @@
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-base</artifactId>
-            <version>0.0.15</version>
+            <version>0.0.17</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-win</artifactId>
-            <version>0.0.15</version>
+            <version>0.0.17</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-xml</artifactId>
-            <version>0.0.15</version>
+            <version>0.0.17</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.netbeans.api</groupId>
