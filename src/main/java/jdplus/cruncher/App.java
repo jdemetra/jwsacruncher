@@ -21,6 +21,7 @@ import demetra.information.InformationSet;
 import demetra.information.formatters.BasicConfiguration;
 import demetra.information.formatters.CsvInformationFormatter;
 import demetra.sa.EstimationPolicy;
+import demetra.sa.EstimationPolicyType;
 import demetra.sa.SaDiagnosticsFactory;
 import demetra.sa.SaItem;
 import demetra.sa.SaItems;
@@ -137,15 +138,21 @@ public final class App {
     private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize, EstimationPolicy policy) throws IOException {
 
         System.out.println("Refreshing data");
-        List<SaItem> all = processing.getItems().stream().map(cur -> cur.refresh(policy, TsInformationType.Data)).collect(Collectors.toList());
+        TsInformationType type=policy.getPolicy() == EstimationPolicyType.None ? TsInformationType.None : TsInformationType.Data;
+        List<SaItem> all = processing.getItems().stream().map(cur -> cur.refresh(policy, type)).collect(Collectors.toList());
         SaBatchInformation info = new SaBatchInformation(all.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getKey().getId());
         info.setItems(all);
         SaBatchProcessor processor = new SaBatchProcessor(info, context, output, new ConsoleFeedback());
         processor.process();
+        
+        SaItems nprocessing = processing.toBuilder()
+                .clearItems()
+                .items(all)
+                .build();
 
         System.out.println("Saving new processing...");
-        FileRepository.storeSaProcessing(ws, item, processing);
+        FileRepository.storeSaProcessing(ws, item, nprocessing);
 
     }
 

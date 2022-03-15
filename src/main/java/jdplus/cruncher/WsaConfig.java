@@ -171,7 +171,7 @@ public class WsaConfig {
         tsdic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
 //        // for X13
         Dictionary x13dic = X13Dictionaries.X13DICTIONARY;
-        x13dic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
+//        x13dic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
         // series
         Set<Type> types = CsvInformationFormatter.formattedTypes();
         dic.entrySet().forEach(entry -> {
