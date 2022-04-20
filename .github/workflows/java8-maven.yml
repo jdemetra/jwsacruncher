@@ -72,7 +72,7 @@ jobs:
           SIGN_KEY_PASS: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Dryrun release assets with Maven
-        run: mvn -B -ntp install -DskipTests=true -P full-release -Djreleaser.dryrun=true
+        run: mvn -B -ntp install -DskipTests=true -P full-release -Djreleaser.dry.run=true
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.JRELEASER_GITHUB_TOKEN }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.MAVEN_GPG_PUBLIC_KEY }}
