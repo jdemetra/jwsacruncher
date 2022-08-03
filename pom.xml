@@ -43,7 +43,7 @@
         <project.x.binaries>${project.basedir}/binaries</project.x.binaries>
         <guava.version>30.1.1-jre</guava.version>
         <jimfs.version>1.2</jimfs.version>
-        <spreadsheet4j.version>2.2.5</spreadsheet4j.version>
+        <spreadsheet4j.version>2.5.1</spreadsheet4j.version>
         <demetra.version>3.0.0-SNAPSHOT</demetra.version>
         <jd2.version>2.2.4-SNAPSHOT</jd2.version>
         <jd3-toolkit.version>1.0.0-SNAPSHOT</jd3-toolkit.version>
@@ -195,17 +195,14 @@
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-base</artifactId>
-            <version>0.0.17</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-win</artifactId>
-            <version>0.0.17</version>
         </dependency>
         <dependency>
             <groupId>com.github.nbbrd.java-io-util</groupId>
             <artifactId>java-io-xml</artifactId>
-            <version>0.0.17</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.netbeans.api</groupId>
@@ -226,7 +223,7 @@
             <artifactId>demetra-tsp-text-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>com.github.nbbrd.spreadsheet4j</groupId>
             <artifactId>spreadsheet-xmlss</artifactId>
             <version>${spreadsheet4j.version}</version>
             <exclusions>
@@ -237,7 +234,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>com.github.nbbrd.spreadsheet4j</groupId>
             <artifactId>spreadsheet-od</artifactId>
             <version>${spreadsheet4j.version}</version>
             <exclusions>
@@ -248,7 +245,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>com.github.nbbrd.spreadsheet4j</groupId>
             <artifactId>spreadsheet-poi</artifactId>
             <version>${spreadsheet4j.version}</version>
             <exclusions>
@@ -262,6 +259,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -462,12 +460,10 @@
                 <dependency>
                     <groupId>javax.xml.bind</groupId>
                     <artifactId>jaxb-api</artifactId>
-                    <version>2.4.0-b180830.0359</version>
                 </dependency>
                 <dependency>
                     <groupId>org.glassfish.jaxb</groupId>
                     <artifactId>jaxb-runtime</artifactId>
-                    <version>2.4.0-b180830.0438</version>
                 </dependency>
             </dependencies>
         </profile>
