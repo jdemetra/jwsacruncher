@@ -66,7 +66,7 @@ public class ArgsDecoderTest {
         assertThatThrownBy(() -> decode("workspace.xml", "-x", configFile.getAbsolutePath()))
                 .as("Empty file")
                 .isInstanceOf(CommandLine.ExecutionException.class)
-                .hasCauseInstanceOf(EOFException.class);
+                .hasCauseInstanceOf(NoSuchFileException.class);
 
         write(configFile, "<?xml version=\"1.0\" encoding=\"UTF-");
 
