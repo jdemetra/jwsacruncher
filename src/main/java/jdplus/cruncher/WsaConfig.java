@@ -24,9 +24,7 @@ import demetra.sa.SaProcessingFactory;
 import demetra.sa.csv.CsvLayout;
 import demetra.timeseries.TsData;
 import demetra.toolkit.dictionaries.Dictionary;
-import demetra.tramoseats.TramoSeats;
 import demetra.tramoseats.TramoSeatsDictionaries;
-import demetra.x13.X13;
 import demetra.x13.X13Dictionaries;
 import java.io.File;
 import java.io.IOException;
@@ -171,7 +169,7 @@ public class WsaConfig {
         tsdic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
 //        // for X13
         Dictionary x13dic = X13Dictionaries.X13DICTIONARY;
-//        x13dic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
+        x13dic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
         // series
         Set<Type> types = CsvInformationFormatter.formattedTypes();
         dic.entrySet().forEach(entry -> {
