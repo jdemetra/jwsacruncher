@@ -1,4 +1,4 @@
-name: Java8+ with Maven
+name: Java17+ with Maven
 
 on: [ push, pull_request ]
 
