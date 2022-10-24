@@ -6,7 +6,7 @@
 
     <groupId>eu.europa.ec.joinup.sat</groupId>
     <artifactId>jwsacruncher</artifactId>
-    <version>2.2.4-SNAPSHOT</version>
+    <version>2.2.4-RC1</version>
     <packaging>jar</packaging>
 
     <name>jwsacruncher</name>
