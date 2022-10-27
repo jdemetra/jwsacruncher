@@ -99,6 +99,12 @@
             <groupId>eu.europa.ec.joinup.sat</groupId>
             <artifactId>demetra-spreadsheet</artifactId>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.nbbrd.java-design-util</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
