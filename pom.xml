@@ -46,7 +46,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>eu.europa.ec.joinup.sat</groupId>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>demetra-parent</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
@@ -70,11 +70,11 @@
 
         <!-- compile and runtime -->
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>demetra-tss</artifactId>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>demetra-workspace</artifactId>
         </dependency>
         <dependency>
@@ -96,12 +96,13 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>demetra-spreadsheet</artifactId>
             <scope>runtime</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>com.github.nbbrd.java-design-util</groupId>
+                    <!-- This is a provided dependency of poi; it should not raise problem, but it does -->
+                    <groupId>net.sf.saxon</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
@@ -112,7 +113,7 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>eu.europa.ec.joinup.sat</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>demetra-jdbc</artifactId>
             <scope>runtime</scope>
         </dependency>
