@@ -1,28 +1,25 @@
 package _test;
 
-import java.io.BufferedReader;
-import java.io.Reader;
+import lombok.NonNull;
+
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @lombok.experimental.UtilityClass
 public class DependencyResolver {
 
-    private static final String PREFIX = "   ";
-    private static final String SUFFIX = " -- module";
-
-    public static List<MavenCoordinates> parseCoordinates(Reader reader) {
-        return asBufferedReader(reader).lines()
+    public static @NonNull List<GAV> parse(@NonNull Stream<String> lines) {
+        return lines
                 .filter(DependencyResolver::isValidLine)
                 .map(DependencyResolver::removeAnsiControlChars)
                 .map(DependencyResolver::extract)
-                .map(MavenCoordinates::parse)
+                .map(GAV::parse)
                 .collect(Collectors.toList());
     }
 
-    private static BufferedReader asBufferedReader(Reader reader) {
-        return reader instanceof BufferedReader ? (BufferedReader) reader : new BufferedReader(reader);
-    }
+    private static final String PREFIX = "   ";
+    private static final String SUFFIX = " -- module";
 
     private static boolean isValidLine(String line) {
         return line.startsWith(PREFIX);
@@ -36,5 +33,29 @@ public class DependencyResolver {
         int start = PREFIX.length();
         int end = input.indexOf(SUFFIX, start);
         return input.substring(start, end == -1 ? input.length() : end);
+    }
+
+    @lombok.Value
+    public static class GAV {
+
+        public static @NonNull GAV parse(@NonNull CharSequence input) {
+            String[] items = input.toString().split(":", -1);
+            if (items.length < 4) {
+                throw new IllegalArgumentException("Invalid GAV: '" + input + "'");
+            }
+            return new GAV(items[0], items[1], items[3]);
+        }
+
+        @NonNull String groupId;
+        @NonNull String artifactId;
+        @NonNull String version;
+
+        public static boolean haveSameVersion(@NonNull List<? extends GAV> list) {
+            return list
+                    .stream()
+                    .map(GAV::getVersion)
+                    .distinct()
+                    .count() == 1;
+        }
     }
 }
