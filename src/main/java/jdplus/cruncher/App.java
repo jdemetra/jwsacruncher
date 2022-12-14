@@ -14,37 +14,31 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import com.google.common.base.Stopwatch;
-import ec.demetra.workspace.WorkspaceItem;
-import ec.demetra.workspace.file.FileWorkspace;
-import ec.jwsacruncher.core.FileRepository;
-import ec.jwsacruncher.batch.SaBatchProcessor;
-import ec.jwsacruncher.batch.SaBatchInformation;
-import ec.tss.ITsProvider;
-import ec.tss.TsFactory;
-import ec.tss.sa.EstimationPolicyType;
-import ec.tss.sa.ISaDiagnosticsFactory;
-import ec.tss.sa.ISaProcessingFactory;
-import ec.tss.sa.SaManager;
-import ec.tss.sa.SaProcessing;
-import ec.tss.sa.output.BasicConfiguration;
-import ec.tss.sa.output.CsvMatrixOutputConfiguration;
-import ec.tss.sa.output.CsvMatrixOutputFactory;
-import ec.tss.sa.output.CsvOutputConfiguration;
-import ec.tss.sa.output.CsvOutputFactory;
-import ec.tss.tsproviders.IFileLoader;
-import ec.tss.tsproviders.TsProviders;
-import ec.tstoolkit.algorithm.ProcessingContext;
-import ec.tstoolkit.design.VisibleForTesting;
-import ec.tstoolkit.information.InformationMapping;
-import ec.tstoolkit.information.InformationSet;
-import ec.tstoolkit.timeseries.calendars.GregorianCalendarManager;
-import ec.tstoolkit.timeseries.regression.ITsVariable;
-import ec.tstoolkit.timeseries.regression.TsVariables;
-import ec.tstoolkit.utilities.IDynamicObject;
-import ec.tstoolkit.utilities.Paths;
+import demetra.DemetraVersion;
+import demetra.information.InformationSet;
+import demetra.information.formatters.BasicConfiguration;
+import demetra.information.formatters.CsvInformationFormatter;
+import demetra.sa.EstimationPolicy;
+import demetra.sa.EstimationPolicyType;
+import demetra.sa.SaDiagnosticsFactory;
+import demetra.sa.SaItem;
+import demetra.sa.SaItems;
+import demetra.sa.SaManager;
+import demetra.sa.SaOutputFactory;
+import demetra.sa.csv.CsvMatrixOutputConfiguration;
+import demetra.sa.csv.CsvMatrixOutputFactory;
+import demetra.sa.csv.CsvOutputConfiguration;
+import demetra.sa.csv.CsvOutputFactory;
+import demetra.timeseries.TsFactory;
+import demetra.timeseries.TsInformationType;
+import demetra.timeseries.regression.ModellingContext;
+import demetra.tsprovider.FileLoader;
+import demetra.util.Paths;
+import demetra.workspace.WorkspaceItemDescriptor;
+import demetra.workspace.WorkspaceUtility;
+import demetra.workspace.file.FileWorkspace;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,9 +46,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jdplus.cruncher.batch.SaBatchInformation;
+import jdplus.cruncher.batch.SaBatchProcessor;
+import jdplus.cruncher.core.FileRepository;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import picocli.CommandLine;
 
@@ -82,6 +79,8 @@ public final class App {
         } catch (CommandLine.ExecutionException ex) {
             reportException(ex.getCause());
             System.exit(-1);
+        } catch (Exception err) {
+            System.exit(-1);
         }
     }
 
@@ -90,75 +89,85 @@ public final class App {
         System.err.println(ex.getClass().getSimpleName() + ": " + ex.getMessage());
     }
 
-    @VisibleForTesting
     static void generateDefaultConfigFile(@NonNull File userDir) throws IOException {
         WsaConfig config = WsaConfig.generateDefault();
         File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
         WsaConfig.write(configFile, config);
     }
 
-    @VisibleForTesting
-    static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        loadResources();
-        enableDiagnostics(config.Matrix);
-
-        try (FileWorkspace ws = FileWorkspace.open(workspace.toPath())) {
-            process(ws, ProcessingContext.getActiveContext(), config);
-        }
-
-        System.out.println("Total processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
+    private static List<SaOutputFactory> createOutputFactories(WsaConfig config) {
+        List<SaOutputFactory> output = new ArrayList<>();
+        output.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
+        output.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
+        return output;
     }
 
-    private static void process(FileWorkspace ws, ProcessingContext context, WsaConfig config) throws IOException {
-        Map<WorkspaceItem, GregorianCalendarManager> cal = FileRepository.loadAllCalendars(ws, context);
-        Map<WorkspaceItem, TsVariables> vars = FileRepository.loadAllVariables(ws, context);
-        Map<WorkspaceItem, SaProcessing> sa = FileRepository.loadAllSaProcessing(ws, context);
+    static void process(@NonNull File workspace, @NonNull WsaConfig config) throws IllegalArgumentException, IOException {
 
-        applyFilePaths(getFilePaths(config));
-        if (config.refresh) {
-            refreshVariables(ws, vars);
+        try ( FileWorkspace ws = FileWorkspace.open(workspace.toPath(),
+                config.format.equalsIgnoreCase("JD2") ? DemetraVersion.JD2 : DemetraVersion.JD3)) {
+            ModellingContext cxt = WorkspaceUtility.context(ws, config.refresh);
+            loadResources();
+            enableDiagnostics(config.Matrix);
+            process(ws, cxt, config);
         }
+    }
+
+    private static void process(FileWorkspace ws, ModellingContext context, WsaConfig config) throws IOException {
+        applyFilePaths(getFilePaths(config));
+
+//        FileRepository.loadAllCalendars(ws, context);
+//        Map<WorkspaceItemDescriptor, TsDataSuppliers> vars = FileRepository.loadAllVariables(ws, context);
+        Map<WorkspaceItemDescriptor, SaItems> sa = FileRepository.loadAllSaProcessing(ws, context);
+
         if (sa.isEmpty()) {
             return;
         }
+        int bundleSize = config.BundleSize == null ? 0 : config.BundleSize;
+
         applyOutputConfig(config, ws.getRootFolder());
-        for (Entry<WorkspaceItem, SaProcessing> o : sa.entrySet()) {
-            process(ws, o.getKey(), o.getValue(), config.getPolicy(), config.BundleSize);
+        enableDiagnostics(config.Matrix);
+        EstimationPolicy policy = new EstimationPolicy(config.getPolicy(), null);
+
+        List<SaOutputFactory> output = createOutputFactories(config);
+        for (Entry<WorkspaceItemDescriptor, SaItems> o : sa.entrySet()) {
+            process(ws, o.getKey(), o.getValue(), context, output, bundleSize, policy);
         }
     }
 
-    private static void process(FileWorkspace ws, WorkspaceItem item, SaProcessing processing, EstimationPolicyType policy, int bundleSize) throws IOException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+    private static void process(FileWorkspace ws, WorkspaceItemDescriptor item, SaItems processing, ModellingContext context, List<SaOutputFactory> output, int bundleSize, EstimationPolicy policy) throws IOException {
 
         System.out.println("Refreshing data");
-        processing.refresh(policy, false);
-        SaBatchInformation info = new SaBatchInformation(processing.size() > bundleSize ? bundleSize : 0);
-        info.setName(item.getId());
-        info.setItems(processing);
-        SaBatchProcessor processor = new SaBatchProcessor(info, new ConsoleFeedback());
+        TsInformationType type=policy.getPolicy() == EstimationPolicyType.None ? TsInformationType.None : TsInformationType.Data;
+        List<SaItem> all = processing.getItems().stream().map(cur -> cur.refresh(policy, type)).collect(Collectors.toList());
+        SaBatchInformation info = new SaBatchInformation(all.size() > bundleSize ? bundleSize : 0);
+        info.setName(item.getKey().getId());
+        info.setItems(all);
+        SaBatchProcessor processor = new SaBatchProcessor(info, context, output, new ConsoleFeedback());
         processor.process();
+        
+        SaItems nprocessing = processing.toBuilder()
+                .clearItems()
+                .items(all)
+                .build();
 
         System.out.println("Saving new processing...");
-        FileRepository.storeSaProcessing(ws, item, processing);
+        FileRepository.storeSaProcessing(ws, item, nprocessing);
 
-        System.out.println("Processing time: " + stopwatch.elapsed(TimeUnit.SECONDS) + "s");
     }
 
     private static void loadResources() {
         loadFileProperties();
-        ServiceLoader.load(ITsProvider.class).forEach(TsFactory.instance::add);
-        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
-        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(SaManager.instance::add);
-        InformationMapping.updateAll(null);
+//        ServiceLoader.load(ITsProvider.class).forEach(TsFactory.instance::add);
+//        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
+//        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(SaManager.instance::add);
     }
 
     private static void loadFileProperties() {
         String basedir = System.getProperty("basedir");
         if (basedir != null) {
             Path file = java.nio.file.Paths.get(basedir, "etc", "system.properties");
-            try (InputStream stream = Files.newInputStream(file)) {
+            try ( InputStream stream = Files.newInputStream(file)) {
                 Properties properties = new Properties();
                 properties.load(stream);
                 System.getProperties().putAll(properties);
@@ -169,7 +178,7 @@ public final class App {
     }
 
     private static void applyFilePaths(File[] paths) {
-        TsProviders.all().filter(IFileLoader.class).forEach(o -> o.setPaths(paths));
+        TsFactory.getDefault().getProviders().filter(f -> f instanceof FileLoader).forEach(o -> ((FileLoader) o).setPaths(paths));
     }
 
     private static void applyOutputConfig(WsaConfig config, Path rootFolder) {
@@ -177,7 +186,7 @@ public final class App {
             BasicConfiguration.setDecimalNumber(config.ndecs);
         }
         if (config.csvsep != null && config.csvsep.length() == 1) {
-            BasicConfiguration.setCsvSeparator(config.csvsep.charAt(0));
+            CsvInformationFormatter.setCsvSeparator(config.csvsep.charAt(0));
         }
 
         if (config.Output == null) {
@@ -188,9 +197,6 @@ public final class App {
             output.mkdirs();
         }
 
-        // TODO: apply instead of add
-        SaManager.instance.add(new CsvOutputFactory(getCsvOutputConfiguration(config)));
-        SaManager.instance.add(new CsvMatrixOutputFactory(getCsvMatrixOutputConfiguration(config)));
     }
 
     private static File[] getFilePaths(WsaConfig config) {
@@ -233,30 +239,20 @@ public final class App {
                 }
             }
         }
-        // step 2. Enable/disables diag
-        SaManager.instance.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
-    }
-
-    private static void refreshVariables(FileWorkspace ws, Map<WorkspaceItem, TsVariables> vars) {
-        vars.forEach((item, v) -> {
-            boolean dirty = false;
-            Collection<ITsVariable> variables = v.variables();
-            for (ITsVariable var : variables) {
-                if (var instanceof IDynamicObject) {
-                    IDynamicObject dvar = (IDynamicObject) var;
-                    dvar.refresh();
-                    dirty = true;
+        SaManager.processors().forEach(
+                processor -> {
+                    List<SaDiagnosticsFactory> facs = processor.diagnosticFactories();
+                    List<SaDiagnosticsFactory> nfacs = new ArrayList<>();
+                    facs.forEach(dfac -> {
+                        boolean active = dfac.isActive() || diags.contains(dfac.getName());
+                        nfacs.add(dfac.activate(active));
+                    });
+                    processor.resetDiagnosticFactories(nfacs);
                 }
-            }
-            if (dirty) {
-                try {
-                    ws.store(item, v);
-                } catch (IOException ex) {
-                    log.log(Level.SEVERE, null, ex);
-                }
-            }
-        }
         );
+
+        // step 2. Enable/disables diag
+//        SaManager.getDiagnostics().forEach(d -> d.setEnabled(diags.contains(d.getName().toLowerCase())));
     }
 
 }

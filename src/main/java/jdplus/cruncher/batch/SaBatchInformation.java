@@ -16,10 +16,9 @@
 */
 
 
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
-import ec.tss.TsInformationType;
-import ec.tss.sa.SaItem;
+import demetra.sa.SaItem;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -29,25 +28,25 @@ import java.util.List;
  *
  * @author Kristof Bayens
  */
-public class SaBatchInformation implements ISaBatchInformation {
-    private String name_;
-    private SaItem[] items_;
-    private int bundlesize_;
-    private ISaBundle[] bundles_;
+public class SaBatchInformation {
+    private String name;
+    private SaItem[] items;
+    private int bundlesize;
+    private SaBundle[] bundles;
 
     public SaBatchInformation(int bundlesize) {
-        bundlesize_ = bundlesize;
+        this.bundlesize = bundlesize;
     }
 
     public String getName() {
-        return name_;
+        return name;
     }
     public void setName(String value) {
-        name_ = value;
+        name = value;
     }
 
     public Iterable<SaItem> getItems() {
-        return Arrays.asList(items_);
+        return Arrays.asList(items);
     }
     
     public void setItems(Iterable<SaItem> value) {
@@ -55,44 +54,39 @@ public class SaBatchInformation implements ISaBatchInformation {
         List<SaItem> list = new ArrayList<>();
         while(iter.hasNext())
             list.add(iter.next());
-        items_ = list.toArray(new SaItem[list.size()]);
+        items = list.toArray(new SaItem[list.size()]);
     }
 
-    @Override
     public boolean open() {
         return true;
     }
 
-    @Override
-    public Iterator<ISaBundle> start() {
-        for (int i = 0; i< items_.length; ++i)
-            items_[i].getTs().query(TsInformationType.Data);
+    public Iterator<SaBundle> start() {
 
-        if (bundlesize_ == 0)
-            bundles_ = new ISaBundle[] { new SaBundle(name_, Arrays.asList(items_)) };
+        if (bundlesize == 0)
+            bundles = new SaBundle[] { new SaBundle(name, Arrays.asList(items)) };
         else {
-            int n = items_.length;
-            int nb = 1 + (n - 1) / bundlesize_;
-            bundles_ = new ISaBundle[nb];
-            for (int i = 0, j = 0; i < nb; ++i, j += bundlesize_) {
-                String id = name_;
+            int n = items.length;
+            int nb = 1 + (n - 1) / bundlesize;
+            bundles = new SaBundle[nb];
+            for (int i = 0, j = 0; i < nb; ++i, j += bundlesize) {
+                String id = name;
                 if (id == null)
                     id = "";
                 StringBuilder builder = new StringBuilder();
                 builder.append(id).append('_').append(i + 1);
 
                 String m = builder.toString();
-                SaItem[] items = new SaItem[Math.min(bundlesize_, n - j)];
+                SaItem[] items = new SaItem[Math.min(bundlesize, n - j)];
                 for (int k = 0; k < items.length; ++k)
-                    items[k] = items_[j + k];
-                bundles_[i] = new SaBundle(m, Arrays.asList(items));
+                    items[k] = this.items[j + k];
+                bundles[i] = new SaBundle(m, Arrays.asList(items));
             }
         }
-        Iterable<ISaBundle> bundles = Arrays.asList(bundles_);
+        Iterable<SaBundle> bundles = Arrays.asList(this.bundles);
         return bundles.iterator();
     }
 
-    @Override
     public void close() 
     {
     }

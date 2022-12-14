@@ -14,9 +14,9 @@
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import ec.jwsacruncher.batch.ISaBatchFeedback;
+import jdplus.cruncher.batch.ISaBatchFeedback;
 
 /**
  *

@@ -16,16 +16,13 @@
 */
 
 
-package ec.jwsacruncher.batch;
-
-import java.util.Iterator;
+package jdplus.cruncher.batch;
 
 /**
  *
  * @author Kristof Bayens
  */
-public interface ISaBatchInformation {
-    boolean open();
-    Iterator<ISaBundle> start();
-    void close();
+public interface ISaBatchFeedback {
+    void showAction(String action);
+    void showItem(String item, String msg);
 }

@@ -14,11 +14,12 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher.batch;
+package jdplus.cruncher.batch;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import ec.tss.sa.SaItem;
-import ec.tstoolkit.algorithm.CompositeResults;
+import demetra.sa.SaEstimation;
+import demetra.sa.SaItem;
+import demetra.sa.SaOutputFactory;
+import demetra.timeseries.regression.ModellingContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -26,93 +27,87 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  *
- * @author Kristof Bayens
  */
 public class SaBatchProcessor {
 
-    ISaBatchInformation info_;
-    ISaBatchFeedback feedback_;
+    private final SaBatchInformation info;
+    private final ISaBatchFeedback feedback;
+    private final List<SaOutputFactory> output;
+    private final ModellingContext context;
 //    SaProcessing processing_;
     private final String QUERY = "Loading information...", PROCESS = "Processing...", FLUSH = "Flushing bundle...", OPEN = "Opening...", CLOSE = "Closing...", GENERATEOUTPUT = "Generate Output";
 
-    public SaBatchProcessor(ISaBatchInformation info, ISaBatchFeedback fb) {
-        info_ = info;
-        feedback_ = fb;
+    public SaBatchProcessor(SaBatchInformation info, ModellingContext context, List<SaOutputFactory> output, ISaBatchFeedback fb) {
+        this.info = info;
+        this.feedback = fb;
+        this.output = output;
+        this.context=context;
     }
 
     public boolean open() {
-//        processing_ = new SaProcessing();
-        if (feedback_ != null) {
-            feedback_.showAction(OPEN);
+        if (feedback != null) {
+            feedback.showAction(OPEN);
         }
-        return info_.open();
+        return info.open();
     }
 
     public boolean process() {
         if (!open()) {
             return false;
         }
-//        if (!loadContext())
-//            return false;
 
-        Iterator<ISaBundle> iter = info_.start();
+        Iterator<SaBundle> iter = info.start();
         while (iter.hasNext()) {
-            ISaBundle current = iter.next();
+            SaBundle current = iter.next();
             Collection<SaItem> items = current.getItems();
-//            processing_.addAll(items);
-            compute(items);
-            if (feedback_ != null) {
-                feedback_.showAction(FLUSH);
+            compute(items, context);
+            if (feedback != null) {
+                feedback.showAction(FLUSH);
             }
             generateOutput();
-            current.flush(feedback_);
-            //SaManager.instance.remove(items);
+            current.flush(output, feedback);
         }
-
-
-        info_.close();
+        info.close();
         return true;
     }
 
     public void generateOutput() {
-        if (feedback_ != null) {
-            feedback_.showAction(GENERATEOUTPUT);
+        if (feedback != null) {
+            feedback.showAction(GENERATEOUTPUT);
         }
     }
 
-    private List<Callable<String>> createTasks(Collection<SaItem> items) {
+    private List<Callable<String>> createTasks(Collection<SaItem> items, ModellingContext context) {
         List<Callable<String>> result = new ArrayList(items.size());
         if (!items.isEmpty()) {
             for (final SaItem o : items) {
-                result.add(new Callable<String>() {
-                    @Override
-                    public String call() throws Exception {
-                        CompositeResults result = o.process();
-                        String rslt = (result == null ? " failed" : " processed");
-                        if (feedback_ != null) {
-                            feedback_.showItem(o.getTs().getName(), rslt);
-                        }
-                        return rslt;
+                result.add((Callable<String>) () -> {
+                    if (! o.isProcessed())
+                        o.process(context, false);
+                    SaEstimation result1 = o.getEstimation();
+                    String rslt = result1 == null ? " failed" : " processed";
+                    if (feedback != null) {
+                        feedback.showItem(o.getDefinition().getTs().getName(), rslt);
                     }
+                    return rslt;
                 });
             }
         }
         return result;
     }
+
     private static final int NBR_EXECUTORS = Runtime.getRuntime().availableProcessors();
-    private static final ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder().setDaemon(true).setPriority(Thread.MIN_PRIORITY).build();
 
-    private void compute(Collection<SaItem> items) {
+    private void compute(Collection<SaItem> items, ModellingContext context) {
 
-        List<Callable<String>> tasks = createTasks(items);
+        List<Callable<String>> tasks = createTasks(items, context);
         if (tasks.isEmpty()) {
             return;
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(NBR_EXECUTORS, THREAD_FACTORY);
+        ExecutorService executorService = Executors.newFixedThreadPool(NBR_EXECUTORS);
         try {
             executorService.invokeAll(tasks);
         } catch (InterruptedException ex) {

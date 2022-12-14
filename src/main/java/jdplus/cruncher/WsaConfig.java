@@ -14,19 +14,26 @@
 * See the Licence for the specific language governing permissions and 
 * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import ec.tss.sa.EstimationPolicyType;
-import ec.tss.sa.ISaDiagnosticsFactory;
-import ec.tss.sa.ISaProcessingFactory;
-import ec.tss.sa.SaManager;
-import ec.tss.sa.output.BasicConfiguration;
-import ec.tss.sa.output.CsvLayout;
-import ec.tstoolkit.information.InformationMapping;
+import demetra.information.formatters.CsvInformationFormatter;
+import demetra.sa.EstimationPolicyType;
+import demetra.sa.SaDiagnosticsFactory;
+import demetra.sa.SaManager;
+import demetra.sa.SaProcessingFactory;
+import demetra.sa.csv.CsvLayout;
+import demetra.timeseries.TsData;
+import demetra.toolkit.dictionaries.Dictionary;
+import demetra.tramoseats.TramoSeatsDictionaries;
+import demetra.x13.X13Dictionaries;
 import java.io.File;
 import java.io.IOException;
-import java.util.ServiceLoader;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -36,6 +43,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import nbbrd.io.WrappedIOException;
 import nbbrd.io.xml.bind.Jaxb;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  *
@@ -64,9 +72,15 @@ public class WsaConfig {
     @XmlAttribute(name = "csvlayout")
     public String layout = "list";
     @XmlAttribute(name = "csvseparator")
-    public String csvsep = String.valueOf(BasicConfiguration.getCsvSeparator());
+    public String csvsep = String.valueOf(CsvInformationFormatter.getCsvSeparator());
     @XmlAttribute(name = "ndecs")
     public Integer ndecs = 6;
+    @XmlAttribute(name = "fullseriesname")
+    public Boolean fullSeriesName = true;
+    @XmlAttribute(name = "rsltnamelevel")
+    public Integer resultNameLevel = 2;
+    @XmlAttribute(name = "format")
+    public String format = "JD3";
 
     public WsaConfig() {
     }
@@ -146,21 +160,40 @@ public class WsaConfig {
     static WsaConfig generateDefault() {
         WsaConfig result = new WsaConfig();
         loadAll();
+        List<String> mlist = new ArrayList<>();
+        List<String> tlist = new ArrayList<>();
+        
+        Map<String, Class> dic = new LinkedHashMap<>();
+        // for TramoSeats
+        Dictionary tsdic = TramoSeatsDictionaries.TRAMOSEATSDICTIONARY;
+        tsdic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
+//        // for X13
+        Dictionary x13dic = X13Dictionaries.X13DICTIONARY;
+        x13dic.entries().forEachOrdered(entry->dic.put(entry.fullName(), entry.getOutputClass()));
         // series
-        result.TSMatrix = BasicConfiguration.allSaSeries(true).toArray(result.TSMatrix);
-        result.Matrix = BasicConfiguration.allSaDetails(true).toArray(result.Matrix);
+        Set<Type> types = CsvInformationFormatter.formattedTypes();
+        dic.entrySet().forEach(entry -> {
+            if (entry.getValue() == TsData.class){
+                tlist.add(entry.getKey());
+            }else if (types.contains(entry.getValue())){
+                mlist.add(entry.getKey());
+            }
+        });
+        result.TSMatrix=tlist.toArray(result.TSMatrix);
+        result.Matrix=mlist.toArray(result.Matrix);
         return result;
     }
 
+    // use all diagnostics
     private static void loadAll() {
-        // update the possible items
-        ServiceLoader.load(ISaProcessingFactory.class).forEach(SaManager.instance::add);
-        // load and enables all diagnostics
-        ServiceLoader.load(ISaDiagnosticsFactory.class).forEach(
-                diag -> {
-                    diag.setEnabled(true);
-                    SaManager.instance.add(diag);
-                });
-        InformationMapping.updateAll(null);
+        List<SaProcessingFactory> processors = SaManager.processors();
+        processors.forEach(fac -> {
+            List<SaDiagnosticsFactory> diagnostics = fac.diagnosticFactories();
+            List<SaDiagnosticsFactory> ndiagnostics=new ArrayList<>();
+            diagnostics.forEach(dfac -> {
+                ndiagnostics.add(dfac.activate(true));
+            });
+            fac.resetDiagnosticFactories(ndiagnostics);
+        });
     }
 }

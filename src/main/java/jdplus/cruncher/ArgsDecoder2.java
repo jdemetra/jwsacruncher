@@ -14,17 +14,17 @@
  * See the Licence for the specific language governing permissions and 
  * limitations under the Licence.
  */
-package ec.jwsacruncher;
+package jdplus.cruncher;
 
-import ec.tss.sa.EstimationPolicyType;
+import demetra.sa.EstimationPolicyType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.concurrent.Callable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.fusesource.jansi.AnsiConsole;
 import picocli.CommandLine;
+import picocli.jansi.graalvm.AnsiConsole;
 
 /**
  *
@@ -114,11 +114,8 @@ final class ArgsDecoder2 implements Callable<Args> {
 
     @Nullable
     public static Args decode(@NonNull String... args) {
-        AnsiConsole.systemInstall();
-        try {
+        try (AnsiConsole ansi = AnsiConsole.windowsInstall()) {
             return CommandLine.call(new ArgsDecoder2(), args);
-        } finally {
-            AnsiConsole.systemUninstall();
         }
     }
 }

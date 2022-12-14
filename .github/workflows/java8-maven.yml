@@ -1,0 +1,46 @@
+name: Java17+ with Maven
+
+on: [ push, pull_request ]
+
+jobs:
+  build-and-test-job:
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ 17 ]
+        os: [ ubuntu-latest, macOS-latest, windows-latest ]
+        experimental: [ false ]
+        include:
+          - java: '-ea'
+            os: ubuntu-latest
+            experimental: true
+
+    name: JDK${{ matrix.java }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'maven'
+
+      - name: Build jdemetra-core snapshots
+        run: |
+          git clone -b v3.0.0 --single-branch --depth=1 https://github.com/palatej/jdemetra-core.git jdemetra-core
+          cd jdemetra-core
+          mvn -B install -DskipTests=true
+          cd ..
+
+      - name: Build and (headless) test with Maven
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: mvn -B -ntp package
