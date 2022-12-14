@@ -43,7 +43,7 @@
         <project.x.binaries>${project.basedir}/binaries</project.x.binaries>
         <guava.version>30.1.1-jre</guava.version>
         <jimfs.version>1.2</jimfs.version>
-        <spreadsheet4j.version>2.5.1</spreadsheet4j.version>
+        <spreadsheet4j.version>2.5.2</spreadsheet4j.version>
         <demetra.version>3.0.0-SNAPSHOT</demetra.version>
         <jd2.version>2.2.4-SNAPSHOT</jd2.version>
         <jd3-toolkit.version>1.0.0-SNAPSHOT</jd3-toolkit.version>
@@ -580,10 +580,12 @@
                 <dependency>
                     <groupId>javax.xml.bind</groupId>
                     <artifactId>jaxb-api</artifactId>
+                    <version>2.4.0-b180830.0359</version>
                 </dependency>
                 <dependency>
                     <groupId>org.glassfish.jaxb</groupId>
                     <artifactId>jaxb-runtime</artifactId>
+                    <version>2.4.0-b180830.0438</version>
                 </dependency>
             </dependencies>
         </profile>
