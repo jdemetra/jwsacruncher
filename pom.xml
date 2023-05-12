@@ -204,6 +204,17 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.1.0</version>
                 </plugin>
+                <!-- Other plugins -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -211,7 +222,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <id>list-runtime-dependencies</id>
@@ -553,57 +563,163 @@
         </profile>
 
         <profile>
+            <!-- Release binaries on GitHub -->
+            <!-- Note that all plugins are run on 'install' phase -->
             <id>full-release</id>
+            <properties>
+                <java.bundled.version>jdk-17.0.7+7</java.bundled.version>
+                <jdkname>${java.bundled.version}-jre</jdkname>
+            </properties>
             <build>
                 <plugins>
+                    <!-- Gather binaries and JRE -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack-binaries</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>unpack</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>eu.europa.ec.joinup.sat</groupId>
+                                            <artifactId>jwsacruncher</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>zip</type>
+                                            <classifier>bin</classifier>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.directory}/windows</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jreleaser</groupId>
+                        <artifactId>jdks-maven-plugin</artifactId>
+                        <version>1.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>download-windows-jre</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>setup-disco</goal>
+                                </goals>
+                                <configuration>
+                                    <pkgs>
+                                        <pkg>
+                                            <name>temurin17</name>
+                                            <distribution>temurin</distribution>
+                                            <platform>windows-x86_64</platform>
+                                            <version>${java.bundled.version}</version>
+                                            <packageType>jre</packageType>
+                                        </pkg>
+                                    </pkgs>
+                                    <unpack>true</unpack>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Create binaries bundled with JRE -->
+                    <plugin>
+                        <groupId>io.github.floverfelt</groupId>
+                        <artifactId>find-and-replace-maven-plugin</artifactId>
+                        <version>1.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>configure-cli-bin</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>find-and-replace</goal>
+                                </goals>
+                                <configuration>
+                                    <replacementType>file-contents</replacementType>
+                                    <baseDir>target/windows/jwsacruncher-${project.version}/bin/</baseDir>
+                                    <fileMask>jwsacruncher.bat</fileMask>
+                                    <encoding>UTF-8</encoding>
+                                    <findRegex>JAVACMD=java</findRegex>
+                                    <replaceValue>JAVACMD=%BASEDIR%\\${jdkname}\\bin\\java</replaceValue>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>pack-cli-bin</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <configuration>
+                                    <descriptors>
+                                        <descriptor>src/assembly/cli-windows-assembly.xml</descriptor>
+                                    </descriptors>
+                                    <attach>false</attach>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Release assets -->
                     <plugin>
                         <groupId>org.jreleaser</groupId>
                         <artifactId>jreleaser-maven-plugin</artifactId>
                         <version>1.5.1</version>
                         <executions>
                             <execution>
+                                <id>release-assets</id>
                                 <phase>install</phase>
                                 <goals>
                                     <goal>full-release</goal>
                                 </goals>
+                                <configuration>
+                                    <jreleaser>
+                                        <release>
+                                            <github>
+                                                <skipTag>true</skipTag>
+                                                <changelog>
+                                                    <!--<external>${project.basedir}/../CHANGELOG.md</external>-->
+                                                </changelog>
+                                                <!-- Fix default value -->
+                                                <branch>master</branch>
+                                            </github>
+                                        </release>
+                                        <signing>
+                                            <active>ALWAYS</active>
+                                            <!-- Fix default value -->
+                                            <armored>true</armored>
+                                        </signing>
+                                        <distributions>
+                                            <!-- Name is here ! -->
+                                            <jwsacruncher>
+                                                <type>JAVA_BINARY</type>
+                                                <artifacts>
+                                                    <artifact>
+                                                        <path>
+                                                            ${project.build.directory}/${project.build.finalName}-bin.zip
+                                                        </path>
+                                                    </artifact>
+                                                    <artifact>
+                                                        <path>
+                                                            ${project.build.directory}/${project.build.finalName}-bin-windows.zip
+                                                        </path>
+                                                        <platform>windows</platform>
+                                                    </artifact>
+                                                </artifacts>
+                                            </jwsacruncher>
+                                        </distributions>
+                                    </jreleaser>
+                                </configuration>
                             </execution>
                         </executions>
-                        <configuration>
-                            <jreleaser>
-                                <release>
-                                    <github>
-                                        <skipTag>true</skipTag>
-                                        <draft>true</draft>
-                                        <!-- Fix default value -->
-                                        <branch>master</branch>
-                                        <changelog>
-                                            <!--<external>${project.basedir}/../CHANGELOG.md</external>-->
-                                        </changelog>
-                                    </github>
-                                </release>
-                                <checksum>
-                                    <individual>true</individual>
-                                </checksum>
-                                <signing>
-                                    <active>ALWAYS</active>
-                                    <!-- Fix default value -->
-                                    <armored>true</armored>
-                                </signing>
-                                <distributions>
-                                    <!-- Name is here ! -->
-                                    <jwsacruncher>
-                                        <type>JAVA_BINARY</type>
-                                        <artifacts>
-                                            <artifact>
-                                                <path>
-                                                    ${project.build.directory}/${project.build.finalName}-bin.zip
-                                                </path>
-                                            </artifact>
-                                        </artifacts>
-                                    </jwsacruncher>
-                                </distributions>
-                            </jreleaser>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
