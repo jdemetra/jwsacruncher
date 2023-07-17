@@ -131,9 +131,9 @@ public final class App {
 
     private static void process(FileWorkspace ws, WorkspaceItem item, SaProcessing processing, EstimationPolicyType policy, int bundleSize) throws IOException {
         Stopwatch stopwatch = Stopwatch.createStarted();
-
+        if (EstimationPolicyType.None != policy) {
         System.out.println("Refreshing data");
-        processing.refresh(policy, false);
+        processing.refresh(policy, false);}
         SaBatchInformation info = new SaBatchInformation(processing.size() > bundleSize ? bundleSize : 0);
         info.setName(item.getId());
         info.setItems(processing);
