@@ -41,7 +41,7 @@
 
     <properties>
         <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
-        <java.bundled.version>jdk-17.0.9+9</java.bundled.version>
+        <java.bundled.version>jdk-17.0.9+9.1</java.bundled.version>
     </properties>
 
     <dependencyManagement>
