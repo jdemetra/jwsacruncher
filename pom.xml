@@ -41,7 +41,7 @@
 
     <properties>
         <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
-        <java.bundled.version>jdk-17.0.9+9.1</java.bundled.version>
+        <java.bundled.version>jdk-17.0.9+9</java.bundled.version>
     </properties>
 
     <dependencyManagement>
@@ -284,12 +284,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/assembly/app-assembly.xml</descriptor>
-                    </descriptors>
-                </configuration>
                 <executions>
                     <execution>
                         <id>make-assembly</id>
@@ -297,6 +291,11 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/app-assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -615,7 +614,11 @@
                         <executions>
                             <execution>
                                 <id>download-windows-jre</id>
-                                <phase>install</phase>
+                                <!-- VERIFY instead of INSTALL to fix execution ordering bug of maven-assembly-plugin:
+                                     "multiple goals bound to a phase are executed in the same order
+                                     as they are declared in the POM, however multiple instances
+                                     of the same plugin are not supported" -->
+                                <phase>verify</phase>
                                 <goals>
                                     <goal>setup-disco</goal>
                                 </goals>
@@ -630,6 +633,30 @@
                                         </pkg>
                                     </pkgs>
                                     <unpack>true</unpack>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>check-binaries-jre</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>enforce</goal>
+                                </goals>
+                                <inherited>false</inherited>
+                                <configuration>
+                                    <rules>
+                                        <requireFilesExist>
+                                            <files>
+                                                <file>${project.build.directory}/windows/jwsacruncher-${project.version}</file>
+                                                <file>${project.build.directory}/jdks/temurin17/${jdkname}</file>
+                                            </files>
+                                        </requireFilesExist>
+                                    </rules>
                                 </configuration>
                             </execution>
                         </executions>
