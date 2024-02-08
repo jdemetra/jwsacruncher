@@ -41,7 +41,7 @@
 
     <properties>
         <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
-        <java.bundled.version>jdk-17.0.9+9</java.bundled.version>
+        <java.bundled.version>jdk-21.0.2+13</java.bundled.version>
     </properties>
 
     <dependencyManagement>
@@ -625,7 +625,7 @@
                                 <configuration>
                                     <pkgs>
                                         <pkg>
-                                            <name>temurin17</name>
+                                            <name>temurin</name>
                                             <distribution>temurin</distribution>
                                             <platform>windows-x86_64</platform>
                                             <version>${java.bundled.version}</version>
@@ -653,7 +653,7 @@
                                         <requireFilesExist>
                                             <files>
                                                 <file>${project.build.directory}/windows/jwsacruncher-${project.version}</file>
-                                                <file>${project.build.directory}/jdks/temurin17/${jdkname}</file>
+                                                <file>${project.build.directory}/jdks/temurin/${jdkname}</file>
                                             </files>
                                         </requireFilesExist>
                                     </rules>
