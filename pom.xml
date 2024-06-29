@@ -150,7 +150,7 @@
             <!-- runtime jdbc driver -->
             <groupId>com.github.nbbrd.java-sql-util</groupId>
             <artifactId>java-sql-lhod</artifactId>
-            <version>1.0.4</version>
+            <version>1.0.6</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
