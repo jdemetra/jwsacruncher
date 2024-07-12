@@ -597,6 +597,7 @@
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -622,6 +623,7 @@
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -707,7 +709,9 @@
                                     <rules>
                                         <requireFilesExist>
                                             <files>
-                                                <file>${project.build.directory}/windows/jwsacruncher-${project.version}</file>
+                                                <file>
+                                                    ${project.build.directory}/windows/jwsacruncher-${project.version}
+                                                </file>
                                                 <file>${project.build.directory}/jdks/temurin/${jdkname}</file>
                                             </files>
                                         </requireFilesExist>
