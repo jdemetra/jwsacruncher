@@ -56,12 +56,8 @@ public class RuntimeDependenciesTest {
                 .extracting(DependencyResolver.GAV::getArtifactId)
                 .containsExactlyInAnyOrder(
                         "spreadsheet-api",
-                        "spreadsheet-html",
-                        "spreadsheet-od",
-                        "spreadsheet-poi",
-                        "spreadsheet-util",
-                        "spreadsheet-xl",
-                        "spreadsheet-xmlss");
+                        "spreadsheet-standalone",
+                        "spreadsheet-poi");
     }
 
     private static void checkJavaIoUtil(List<? extends DependencyResolver.GAV> coordinates) {
