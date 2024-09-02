@@ -787,7 +787,7 @@
                                             <github>
                                                 <skipTag>true</skipTag>
                                                 <changelog>
-                                                    <!--<external>${project.basedir}/../CHANGELOG.md</external>-->
+                                                    <enabled>false</enabled>
                                                 </changelog>
                                                 <!-- Fix default value -->
                                                 <branch>master</branch>
