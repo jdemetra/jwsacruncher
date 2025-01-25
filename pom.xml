@@ -51,7 +51,7 @@
         <x.github.repo>jwsacruncher</x.github.repo>
 
         <project.x.mainClass>ec.jwsacruncher.App</project.x.mainClass>
-        <java.bundled.version>jdk-21.0.5+11</java.bundled.version>
+        <java.bundled.version>jdk-21.0.6+7</java.bundled.version>
     </properties>
 
     <dependencyManagement>
