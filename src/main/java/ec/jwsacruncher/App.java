@@ -68,7 +68,7 @@ public final class App {
     public static void main(String[] args) {
         try {
             if (args.length == 0) {
-                File userDir = new File(System.getProperty("user.dir"));
+                File userDir = java.nio.file.Paths.get(System.getProperty("user.dir")).toFile();
                 generateDefaultConfigFile(userDir);
             } else {
                 Args config = ArgsDecoder2.decode(args);
@@ -93,7 +93,7 @@ public final class App {
     @VisibleForTesting
     static void generateDefaultConfigFile(@NonNull File userDir) throws IOException {
         WsaConfig config = WsaConfig.generateDefault();
-        File configFile = new File(userDir, WsaConfig.DEFAULT_FILE_NAME);
+        File configFile = userDir.toPath().resolve(WsaConfig.DEFAULT_FILE_NAME).toFile();
         WsaConfig.write(configFile, config);
     }
 
@@ -183,7 +183,7 @@ public final class App {
         if (config.Output == null) {
             config.Output = Paths.concatenate(rootFolder.toAbsolutePath().toString(), "Output");
         }
-        File output = new File(config.Output);
+        File output = java.nio.file.Paths.get(config.Output).toFile();
         if (!output.exists()) {
             output.mkdirs();
         }
@@ -201,7 +201,7 @@ public final class App {
 
     private static CsvOutputConfiguration getCsvOutputConfiguration(WsaConfig config) {
         CsvOutputConfiguration result = new CsvOutputConfiguration();
-        result.setFolder(new File(config.Output));
+        result.setFolder(java.nio.file.Paths.get(config.Output).toFile());
         result.setPresentation(config.getLayout());
         result.setSeries(Arrays.asList(config.TSMatrix));
         return result;
@@ -209,7 +209,7 @@ public final class App {
 
     private static CsvMatrixOutputConfiguration getCsvMatrixOutputConfiguration(WsaConfig config) {
         CsvMatrixOutputConfiguration result = new CsvMatrixOutputConfiguration();
-        result.setFolder(new File(config.Output));
+        result.setFolder(java.nio.file.Paths.get(config.Output).toFile());
         if (config.Matrix != null) {
             result.setItems(Arrays.asList(config.Matrix));
         }
