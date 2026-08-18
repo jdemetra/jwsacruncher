@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>eu.europa.ec.joinup.sat</groupId>
@@ -16,7 +14,6 @@
     </description>
     <url>https://github.com/${x.github.user}/${x.github.repo}</url>
     <inceptionYear>2014</inceptionYear>
-
     <licenses>
         <license>
             <name>European Union Public Licence (EUPL)</name>
@@ -74,7 +71,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
     <dependencies>
         <!-- compile only -->
         <dependency>
@@ -119,8 +115,7 @@
             <artifactId>demetra-spreadsheet</artifactId>
             <scope>runtime</scope>
             <exclusions>
-                <exclusion>
-                    <!-- This is a provided dependency of poi; it should not raise problem, but it does -->
+                <exclusion><!-- This is a provided dependency of poi; it should not raise problem, but it does -->
                     <groupId>net.sf.saxon</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
@@ -131,8 +126,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <!-- runtime dep for spreadsheet-poi -->
+        <dependency><!-- runtime dep for spreadsheet-poi -->
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
             <version>2.26.1</version>
@@ -154,8 +148,7 @@
             <artifactId>demetra-odbc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <!-- runtime jdbc driver -->
+        <dependency><!-- runtime jdbc driver -->
             <groupId>com.github.nbbrd.java-sql-util</groupId>
             <artifactId>java-sql-lhod</artifactId>
             <scope>runtime</scope>
@@ -183,6 +176,38 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- Custom repositories: order matters! -->
+    <!-- Maven Central is enforced at top to prevent dependabot to use snapshots as releases -->
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>central-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>old-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <pluginManagement>
@@ -285,6 +310,11 @@
                     <version>0.8.15</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>tidy-maven-plugin</artifactId>
+                    <version>1.4.0</version>
+                </plugin>
+                <plugin>
                     <groupId>org.jreleaser</groupId>
                     <artifactId>jreleaser-maven-plugin</artifactId>
                     <version>1.25.0</version>
@@ -302,6 +332,18 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>tidy-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- List runtime dependencies for tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -866,39 +908,8 @@
                 <forbiddenapis.skip>true</forbiddenapis.skip>
                 <jacoco.skip>true</jacoco.skip>
                 <heylogs.skip>true</heylogs.skip>
+                <tidy.skip>true</tidy.skip>
             </properties>
         </profile>
     </profiles>
-
-    <!-- Custom repositories: order matters! -->
-    <!-- Maven Central is enforced at top to prevent dependabot to use snapshots as releases -->
-    <repositories>
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>central-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>old-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 </project>
