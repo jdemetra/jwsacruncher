@@ -349,7 +349,7 @@
                 <plugin>
                     <groupId>org.jreleaser</groupId>
                     <artifactId>jdks-maven-plugin</artifactId>
-                    <version>1.25.0</version>
+                    <version>1.26.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
