@@ -115,18 +115,20 @@
             <artifactId>demetra-spreadsheet</artifactId>
             <scope>runtime</scope>
             <exclusions>
-                <exclusion><!-- This is a provided dependency of poi; it should not raise problem, but it does -->
+                <exclusion>
+                    <!-- This is a provided dependency of poi; it should not raise problem, but it does -->
                     <groupId>net.sf.saxon</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>
                     <!-- see log4j-to-slf4j below -->
-                    <artifactId>log4j-api</artifactId>
                     <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency><!-- runtime dep for spreadsheet-poi -->
+        <dependency>
+            <!-- runtime dep for spreadsheet-poi -->
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
             <version>2.26.1</version>
@@ -148,7 +150,8 @@
             <artifactId>demetra-odbc</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <dependency><!-- runtime jdbc driver -->
+        <dependency>
+            <!-- runtime jdbc driver -->
             <groupId>com.github.nbbrd.java-sql-util</groupId>
             <artifactId>java-sql-lhod</artifactId>
             <scope>runtime</scope>
